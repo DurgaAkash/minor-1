@@ -40,6 +40,15 @@
       </div>
 
       <section class="dashboard-card admin-panel-card">
+        <div class="card-heading"><span>📊</span><div><h2>Passenger Demand Charts</h2><p>Visual summary of historical CSV demand and browser check-ins.</p></div></div>
+        <div class="chart-grid">
+          <div class="chart-panel"><h3>Passengers by Route</h3><canvas id="route-demand-chart" aria-label="Bar chart showing passengers by route"></canvas></div>
+          <div class="chart-panel"><h3>Demand by Time Slot</h3><canvas id="time-demand-chart" aria-label="Doughnut chart showing passengers by time slot"></canvas></div>
+        </div>
+        <p id="chart-status" class="small-note">Charts use the sample CSV dataset. Check-ins are shown separately when available.</p>
+      </section>
+
+      <section class="dashboard-card admin-panel-card">
         <div class="card-heading"><span>📨</span><div><h2>Passenger Service Requests</h2><p>Approve or reject requests after reviewing the route and expected passenger count.</p></div></div>
         <div id="admin-request-list" class="result-area"></div>
       </section>
@@ -68,6 +77,7 @@
       <p class="demo-warning">Prototype limitation: this demo uses browser localStorage. Passenger and admin pages must be opened in the same browser profile for request updates to be shared. Admin login is demo-only and is not secure authentication.</p>
     </div>
   </main>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="js/admin.js"></script>
 </body>
 </html>
