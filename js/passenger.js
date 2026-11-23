@@ -238,3 +238,10 @@ document.getElementById("route-date").min = new Date().toISOString().split("T")[
 document.getElementById("route-date").value = new Date().toISOString().split("T")[0];
 renderMyRequests();
 initializeRouteMap();
+
+// Show whether the optional Firebase cloud layer is configured.
+// Existing passenger actions remain on localStorage until Firebase Auth is integrated.
+const passengerCloudStatus = document.getElementById("cloud-status");
+if (passengerCloudStatus && window.SmartRouteCloud) {
+  passengerCloudStatus.textContent = window.SmartRouteCloud.status().message;
+}
