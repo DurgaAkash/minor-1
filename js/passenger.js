@@ -245,3 +245,10 @@ const passengerCloudStatus = document.getElementById("cloud-status");
 if (passengerCloudStatus && window.SmartRouteCloud) {
   passengerCloudStatus.textContent = window.SmartRouteCloud.status().message;
 }
+
+
+// Display Firebase setup status. Passenger records remain local until authentication is connected.
+const passengerCloudStatus = document.getElementById("cloud-status");
+if (passengerCloudStatus && window.SmartRouteCloud) {
+  passengerCloudStatus.textContent = window.SmartRouteCloud.status().message;
+}
