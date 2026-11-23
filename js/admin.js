@@ -2,7 +2,7 @@
 // CSV demand forecasts and recommendations are beginner-friendly demo algorithms.
 // Passenger/admin data is stored in this browser's localStorage.
 
-const ADMIN_KEYS = { requests: "smartrouteRequests", checkins: "smartrouteCheckins", user: "smartrouteUser" };
+const ADMIN_KEYS = { requests: "smartrouteRequests", checkins: "smartrouteCheckins", user: "smartrouteUser", schedules: "smartrouteSchedules" };
 const BUS_CAPACITY = 50;
 let historicalDemand = [];
 let routeDemandChart = null;
@@ -270,6 +270,58 @@ async function renderPredictionsAndAgent(checkins, requests) {
       </article>`).join("");
 }
 
+
+function scheduleSlotStart(slot) {
+  const value = String(slot).toLowerCase();
+  if (value.includes("morning")) return 420;
+  if (value.includes("afternoon")) return 720;
+  if (value.includes("evening")) return 1020;
+  return 480;
+}
+function scheduleClock(total) {
+  const hour = Math.floor(total / 60) % 24;
+  return String(hour % 12 || 12).padStart(2, "0") + ":" + String(total % 60).padStart(2, "0") + " " + (hour >= 12 ? "PM" : "AM");
+}
+function renderSchedulePlans(recommendations) {
+  const box = document.getElementById("schedule-plan-list");
+  if (!box) return;
+  const previous = getStoredList(ADMIN_KEYS.schedules);
+  const plans = recommendations.map(item => {
+    const key = (item.from + "|" + item.to + "|" + item.time).toLowerCase();
+    const old = previous.find(plan => plan.key === key);
+    const start = scheduleSlotStart(item.time);
+    return { key, from:item.from, to:item.to, time:item.time, forecast:item.forecast, buses:item.busesRequired,
+      departures:Array.from({length:item.busesRequired},(_,i)=>scheduleClock(start+i*30)),
+      status:old ? old.status : "PENDING", adminNote:old ? old.adminNote || "" : "" };
+  });
+  localStorage.setItem(ADMIN_KEYS.schedules, JSON.stringify(plans));
+  box.innerHTML = plans.map(plan => {
+    const cls = plan.status === "APPROVED" ? "status-approved" : plan.status === "REJECTED" ? "status-rejected" : "status-pending";
+    return `<article class="schedule-card">
+      <div class="request-top"><strong>${safeText(plan.from)} → ${safeText(plan.to)}</strong><span class="status-pill ${cls}">${safeText(plan.status)}</span></div>
+      <p><strong>Time slot:</strong> ${safeText(plan.time)} · <strong>Predicted passengers:</strong> ${plan.forecast}</p>
+      <p><strong>Suggested buses:</strong> ${plan.buses} (assumed capacity ${BUS_CAPACITY} each)</p>
+      <p><strong>Proposed departures:</strong> ${plan.departures.map(safeText).join(" · ")}</p>
+      <p class="small-note">Illustrative 30-minute intervals only; not verified operator timetables.</p>
+      <label for="schedule-note-${safeText(plan.key)}">Admin decision note</label>
+      <textarea id="schedule-note-${safeText(plan.key)}" rows="2">${safeText(plan.adminNote)}</textarea>
+      ${plan.status === "PENDING" ? `<div class="admin-actions"><button class="button button-primary" data-schedule-action="approve" data-key="${safeText(plan.key)}" type="button">Approve Schedule</button><button class="button button-danger" data-schedule-action="reject" data-key="${safeText(plan.key)}" type="button">Reject</button></div>` : ""}
+    </article>`;
+  }).join("") || '<p class="muted-text">No schedule proposals available.</p>';
+}
+function updateScheduleStatus(key, action) {
+  const plans = getStoredList(ADMIN_KEYS.schedules);
+  const plan = plans.find(item => item.key === key);
+  if (!plan || plan.status !== "PENDING") return;
+  const note = document.getElementById("schedule-note-" + key);
+  plan.status = action === "approve" ? "APPROVED" : "REJECTED";
+  plan.adminNote = note ? note.value.trim() : "";
+  plan.reviewedAt = new Date().toISOString();
+  localStorage.setItem(ADMIN_KEYS.schedules, JSON.stringify(plans));
+  renderSchedulePlans(plans);
+  renderSchedulePlans(recommendations);
+}
+
 function renderDemandAnalysis(checkins, requests) {
   const container = document.getElementById("demand-analysis");
   const totals = new Map();
@@ -382,6 +434,10 @@ function updateRequest(requestId, status) {
 document.getElementById("admin-login-button").addEventListener("click", adminLogin);
 document.getElementById("admin-password").addEventListener("keydown", event => {
   if (event.key === "Enter") adminLogin();
+});
+document.getElementById("schedule-plan-list").addEventListener("click", event => {
+  const button = event.target.closest("button[data-schedule-action]");
+  if (button) updateScheduleStatus(button.dataset.key, button.dataset.scheduleAction);
 });
 document.getElementById("admin-request-list").addEventListener("click", event => {
   const button = event.target.closest("button[data-action]");
