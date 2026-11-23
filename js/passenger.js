@@ -30,8 +30,8 @@ function showMessage(id, message, isError = false) {
   element.className = isError ? "form-message error-message" : "form-message success-message";
 }
 
-// Demo route catalogue. The search uses the passenger's entered locations;
-// the catalogue will later be replaced/extended with dataset and admin-managed routes.
+// Known demo bus services. Other Indian locations use the map-based road route estimate;
+// this does not imply that a scheduled bus service is available.
 const demoRoutes = [
   { from: "khambhampadu", to: "tiruvuru", service: "Rural Link 101", time: "07:30 AM", duration: "35 min" },
   { from: "avadi", to: "veltech junction", service: "Village Connect 202", time: "08:00 AM", duration: "25 min" },
@@ -55,7 +55,7 @@ function initializeRouteMap() {
 }
 
 async function geocodePlace(place) {
-  const url = "https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&q=" + encodeURIComponent(place);
+  const url = "https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&countrycodes=in&q=" + encodeURIComponent(place + ", India");
   const response = await fetch(url, { headers: { "Accept": "application/json" } });
   if (!response.ok) throw new Error("Location lookup failed. Please try again.");
   const locations = await response.json();
@@ -93,51 +93,62 @@ async function showRouteOnMap(from, to) {
     routeMap.fitBounds(routeLayer.getBounds(), { padding: [30, 30] });
     const distanceKm = (routeData.routes[0].distance / 1000).toFixed(1);
     const durationMin = Math.round(routeData.routes[0].duration / 60);
-    message.textContent = "Map route loaded • Approx. " + distanceKm + " km • " +
-      (durationMin >= 60 ? Math.floor(durationMin / 60) + " hr " + durationMin % 60 + " min" : durationMin + " min") +
-      ". Estimated road route, not live bus tracking.";
+    const durationText = durationMin >= 60 ? Math.floor(durationMin / 60) + " hr " + durationMin % 60 + " min" : durationMin + " min";
+    message.textContent = "India road route found • Approx. " + distanceKm + " km • " + durationText + ". This is a road estimate, not a confirmed bus timetable.";
+    return { distanceKm, durationText, startLabel: start.label, endLabel: end.label };
   } catch (error) {
     message.textContent = error.message || "Unable to load the map route right now.";
+    throw error;
   }
 }
 
-document.getElementById("route-form").addEventListener("submit", function (event) {
+document.getElementById("route-form").addEventListener("submit", async function (event) {
   event.preventDefault();
   const from = cleanText(document.getElementById("route-from").value);
   const to = cleanText(document.getElementById("route-to").value);
   const date = document.getElementById("route-date").value;
   const results = document.getElementById("route-results");
-  showRouteOnMap(from, to);
 
-  if (from.toLowerCase() === to.toLowerCase()) {
-    results.innerHTML = '<p class="error-message">Starting point and destination must be different.</p>';
+  if (!from || !to || from.toLowerCase() === to.toLowerCase()) {
+    results.innerHTML = '<p class="error-message">Enter two different Indian locations.</p>';
     return;
   }
 
-  const matches = demoRoutes.filter(route =>
-    route.from === from.toLowerCase() && route.to === to.toLowerCase()
-  );
+  results.innerHTML = '<p class="muted-text">Searching for the road route across India...</p>';
+  const submitButton = this.querySelector('button[type="submit"]');
+  submitButton.disabled = true;
+  submitButton.textContent = "Searching...";
 
-  if (matches.length) {
-    results.innerHTML = matches.map(route => `
-      <article class="route-result">
-        <span class="status-pill status-available">Sample route</span>
-        <h3>${route.service}</h3>
-        <p><strong>${from}</strong> → <strong>${to}</strong></p>
-        <p>Departure: ${route.time} · Approx. travel: ${route.duration}</p>
-        <p class="small-note">Travel date: ${date}</p>
-      </article>
-    `).join("");
-  } else {
+  try {
+    const route = await showRouteOnMap(from, to);
+    const sample = demoRoutes.find(item =>
+      item.from === from.toLowerCase() && item.to === to.toLowerCase()
+    );
+
     results.innerHTML = `
       <article class="route-result">
-        <span class="status-pill status-pending">No sample route found</span>
-        <h3>Help us connect this route</h3>
-        <p>We do not have a route record for <strong>${from}</strong> to <strong>${to}</strong> in this starter demo.</p>
-        <p>Submit a bus service request below so the admin can review the travel demand.</p>
+        <span class="status-pill status-available">Road route found</span>
+        <h3>${escapeHTML(from)} → ${escapeHTML(to)}</h3>
+        <p><strong>Approx. distance:</strong> ${route.distanceKm} km</p>
+        <p><strong>Estimated driving time:</strong> ${route.durationText}</p>
+        <p><strong>Travel date:</strong> ${escapeHTML(date)}</p>
+        ${sample ? `<p><strong>Demo bus service:</strong> ${escapeHTML(sample.service)} · ${escapeHTML(sample.time)}</p>` : ""}
+        <p class="small-note">Road directions are retrieved from OpenStreetMap/OSRM. Bus operators, fares, departure times and seat availability are not verified by this prototype.</p>
       </article>`;
     document.getElementById("request-from").value = from;
     document.getElementById("request-to").value = to;
+  } catch (error) {
+    results.innerHTML = `
+      <article class="route-result">
+        <span class="status-pill status-pending">Route lookup unavailable</span>
+        <p>${escapeHTML(error.message || "Could not calculate this route.")}</p>
+        <p>You can still submit a bus service request for this journey.</p>
+      </article>`;
+    document.getElementById("request-from").value = from;
+    document.getElementById("request-to").value = to;
+  } finally {
+    submitButton.disabled = false;
+    submitButton.textContent = "Search Routes";
   }
 });
 
@@ -191,7 +202,6 @@ document.getElementById("request-form").addEventListener("submit", function (eve
   this.reset();
   document.getElementById("request-count").value = 1;
   renderMyRequests();
-initializeRouteMap();
 });
 
 function renderMyRequests() {
