@@ -6,7 +6,7 @@ A beginner-friendly frontend prototype for rural transportation planning.
 ### Current modules
 1. Landing page
 2. Passenger login with keyword-based travel intent detection (demo only)
-3. Passenger route search with Leaflet, OpenStreetMap, Nominatim and OSRM
+3. India-wide road route search using Leaflet, OpenStreetMap, India-restricted Nominatim geocoding and OSRM
 4. Passenger check-ins and service requests
 5. Admin request review, approval and rejection
 6. CSV-based historical rural passenger demand dataset
@@ -40,7 +40,7 @@ minor-1/
 4. Open `admin.html` and sign in with the demo admin credentials shown on the page.
 5. The admin page fetches `data/rural_transport_demand.csv` and displays demand forecasts and recommendations.
 
-### Dataset notes
+### India-wide route search\n- Passengers can enter starting points and destinations anywhere in India; geocoding is restricted to India.\n- OpenStreetMap/Nominatim finds the locations and OSRM calculates an estimated driving route, distance and duration.\n- This does not provide verified bus operators, fares, schedules, seat availability or live GPS tracking.\n- Public map services may apply usage limits; production deployment should follow provider policies and consider a dedicated routing/geocoding service.\n\n### Dataset notes
 The included CSV is **synthetic sample data created for prototype testing**. It is not official APSRTC or government passenger data. Replace it with verified passenger counts before using the forecasts for real transport planning.
 
 Columns: `Date, Source, Destination, Time, Passengers`.
