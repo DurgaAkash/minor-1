@@ -268,6 +268,7 @@ async function renderPredictionsAndAgent(checkins, requests) {
         <p><strong>Current browser signals:</strong> ${item.liveCheckins} check-in passengers · ${item.pendingRequests} passengers in pending requests</p>
         <p class="agent-action"><strong>Recommendation:</strong> ${safeText(item.action)}</p>
       </article>`).join("");
+  renderSchedulePlans(recommendations);
 }
 
 
@@ -318,8 +319,7 @@ function updateScheduleStatus(key, action) {
   plan.adminNote = note ? note.value.trim() : "";
   plan.reviewedAt = new Date().toISOString();
   localStorage.setItem(ADMIN_KEYS.schedules, JSON.stringify(plans));
-  renderSchedulePlans(plans);
-  renderSchedulePlans(recommendations);
+  renderSchedulePlans(plans.map(plan => ({ ...plan, busesRequired: plan.buses })));
 }
 
 function renderDemandAnalysis(checkins, requests) {
