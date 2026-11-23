@@ -1,7 +1,72 @@
 <!DOCTYPE html>
-<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Passenger Dashboard | SmartRoute AI</title><link rel="stylesheet" href="css/style.css"></head>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Passenger Dashboard | SmartRoute AI</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
 <body>
-  <header class="site-header"><a class="brand" href="index.html">🚌 SmartRoute AI</a><nav class="main-nav"><a href="index.html">Home</a><a href="login.html">Passenger Login</a></nav></header>
-  <main class="section"><div class="section-heading"><span class="eyebrow">PASSENGER PORTAL</span><h2>Passenger Dashboard</h2><p>Route search, passenger check-in and request status will be developed here.</p></div>
-  <div class="feature-grid"><article class="feature-card"><h3>Route Finder</h3><p>Search from and to locations.</p></article><article class="feature-card"><h3>Service Request</h3><p>Request a new bus service or timing change.</p></article><article class="feature-card"><h3>My Requests</h3><p>View pending, approved and rejected requests.</p></article><article class="feature-card"><h3>Travel Assistant</h3><p>Ask questions about your journey.</p></article></div></main>
-</body></html>
+  <header class="site-header">
+    <a class="brand" href="index.html">🚌 SmartRoute AI</a>
+    <nav class="main-nav">
+      <a href="index.html">Home</a>
+      <a href="admin.html">Admin</a>
+      <button class="button button-secondary" type="button" onclick="logoutPassenger()">Logout</button>
+    </nav>
+  </header>
+
+  <main class="section dashboard-section">
+    <div class="dashboard-welcome">
+      <div><span class="eyebrow">PASSENGER PORTAL</span><h1>Plan your journey</h1><p>Find a route, record your travel demand, or request a better bus service.</p></div>
+      <div class="welcome-icon">🚌</div>
+    </div>
+
+    <div class="dashboard-grid">
+      <section class="dashboard-card">
+        <div class="card-heading"><span>🔎</span><div><h2>Route Finder</h2><p>Enter your starting point and destination.</p></div></div>
+        <form id="route-form">
+          <label for="route-from">From</label><input id="route-from" required placeholder="e.g. Khambhampadu">
+          <label for="route-to">To</label><input id="route-to" required placeholder="e.g. Tiruvuru">
+          <label for="route-date">Travel date</label><input id="route-date" type="date" required>
+          <button class="button button-primary full-button" type="submit">Search Routes</button>
+        </form>
+        <div id="route-results" class="result-area" aria-live="polite"></div>
+      </section>
+
+      <section class="dashboard-card">
+        <div class="card-heading"><span>📝</span><div><h2>Passenger Check-in</h2><p>Record how many people need this journey.</p></div></div>
+        <form id="checkin-form">
+          <label for="checkin-from">From</label><input id="checkin-from" required placeholder="Village / town">
+          <label for="checkin-to">To</label><input id="checkin-to" required placeholder="Destination">
+          <label for="checkin-time">Preferred time</label><select id="checkin-time"><option>Morning</option><option>Afternoon</option><option>Evening</option></select>
+          <label for="checkin-count">Number of passengers</label><input id="checkin-count" type="number" min="1" max="100" value="1" required>
+          <button class="button button-primary full-button" type="submit">Submit Check-in</button>
+          <p id="checkin-message" class="form-message" aria-live="polite"></p>
+        </form>
+      </section>
+
+      <section class="dashboard-card">
+        <div class="card-heading"><span>📨</span><div><h2>Request a Bus Service</h2><p>Ask the transport admin for a new service or timing change.</p></div></div>
+        <form id="request-form">
+          <label for="request-from">From</label><input id="request-from" required placeholder="Village / town">
+          <label for="request-to">To</label><input id="request-to" required placeholder="Destination">
+          <label for="request-time">Preferred time</label><select id="request-time"><option>Morning</option><option>Afternoon</option><option>Evening</option></select>
+          <label for="request-count">Expected passengers</label><input id="request-count" type="number" min="1" max="500" value="1" required>
+          <label for="request-reason">Reason for request</label><textarea id="request-reason" rows="3" required placeholder="Explain why this service is needed"></textarea>
+          <button class="button button-primary full-button" type="submit">Send Request</button>
+          <p id="request-message" class="form-message" aria-live="polite"></p>
+        </form>
+      </section>
+
+      <section class="dashboard-card">
+        <div class="card-heading"><span>📋</span><div><h2>My Requests</h2><p>Check the latest status of your service requests.</p></div></div>
+        <div id="my-requests" class="result-area"><p class="muted-text">No requests submitted yet.</p></div>
+      </section>
+    </div>
+    <p class="demo-warning">Prototype note: information is saved in this browser using localStorage. It is not yet shared between different devices or users. Dataset-based demand prediction and live bus tracking will be added in later steps.</p>
+  </main>
+
+  <script src="js/passenger.js"></script>
+</body>
+</html>
