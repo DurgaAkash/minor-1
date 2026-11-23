@@ -27,6 +27,7 @@
     </div>
 
     <div id="admin-dashboard" hidden>
+      <p id="cloud-status" class="small-note" aria-live="polite">Checking cloud database setup...</p>
       <div class="dashboard-welcome">
         <div><span class="eyebrow">ADMINISTRATION</span><h1>Transport Control Dashboard</h1><p>Review passenger demand and decide which service requests should be approved.</p></div>
         <div class="welcome-icon">📊</div>
@@ -79,10 +80,15 @@
         <div class="card-heading"><span>📊</span><div><h2>Live Passenger Activity</h2><p>Additional demand reported through this browser's passenger check-ins and pending requests.</p></div></div>
         <div id="demand-analysis" class="result-area"></div>
       </section>
-      <p class="demo-warning">Prototype limitation: this demo uses browser localStorage. Passenger and admin pages must be opened in the same browser profile for request updates to be shared. Admin login is demo-only and is not secure authentication.</p>
+      <p class="demo-warning">Prototype limitation: records still use browser localStorage. Firebase Authentication and cloud data synchronization are not active yet. The current admin login is demo-only and is not secure authentication.</p>
     </div>
   </main>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+  <script src="js/firebase-config.js"></script>
+  <script src="js/cloud-store.js"></script>
   <script src="js/admin.js"></script>
 </body>
 </html>
