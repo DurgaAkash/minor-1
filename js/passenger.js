@@ -227,3 +227,4 @@ function logoutPassenger() {
 document.getElementById("route-date").min = new Date().toISOString().split("T")[0];
 document.getElementById("route-date").value = new Date().toISOString().split("T")[0];
 renderMyRequests();
+initializeRouteMap();
