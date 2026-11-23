@@ -132,3 +132,14 @@ a { color: inherit; text-decoration: none; }
 .demand-count { color: var(--green); font-weight: 800; white-space: nowrap; }
 @media (max-width: 850px) { .admin-stat-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 500px) { .admin-stat-grid { grid-template-columns: 1fr 1fr; } .admin-stat { padding: 14px; } .admin-stat strong { font-size: 1.5rem; } .demand-row { align-items: flex-start; flex-direction: column; } }
+
+
+/* CSV demand prediction and recommendation agent */
+.dataset-metrics { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin: 12px 0; }
+.dataset-metrics > div { padding: 16px; border: 1px solid var(--border); border-radius: 9px; background: #f8fbfd; }
+.dataset-metrics strong { display: block; color: var(--navy); font-size: 1.5rem; }
+.dataset-metrics span { color: var(--muted); font-size: .82rem; }
+.agent-card { margin: 12px 0; padding: 17px; border: 1px solid var(--border); border-left: 4px solid var(--green); border-radius: 10px; background: #fbfefd; }
+.agent-card p { margin-top: 7px; font-size: .9rem; }
+.agent-action { padding: 10px; border-radius: 7px; color: #285c43; background: #eaf7ef; }
+@media (max-width: 600px) { .dataset-metrics { grid-template-columns: 1fr; } }
