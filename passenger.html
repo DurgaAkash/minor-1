@@ -18,6 +18,7 @@
   </header>
 
   <main class="section dashboard-section">
+    <p id="cloud-status" class="small-note" aria-live="polite">Checking cloud database setup...</p>
     <div class="dashboard-welcome">
       <div><span class="eyebrow">PASSENGER PORTAL</span><h1>Plan your journey</h1><p>Find a route, record your travel demand, or request a better bus service.</p></div>
       <div class="welcome-icon">🚌</div>
@@ -68,10 +69,15 @@
         <div id="my-requests" class="result-area"><p class="muted-text">No requests submitted yet.</p></div>
       </section>
     </div>
-    <p class="demo-warning">Prototype note: information is saved in this browser using localStorage. It is not yet shared between different devices or users. Dataset-based demand prediction and live bus tracking will be added in later steps.</p>
+    <p class="demo-warning">Prototype note: passenger records still use localStorage until Firebase Authentication is connected. Cloud database setup is being prepared; this is not yet cross-device storage or live bus tracking.</p>
   </main>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+  <script src="js/firebase-config.js"></script>
+  <script src="js/cloud-store.js"></script>
   <script src="js/passenger.js"></script>
 </body>
 </html>
