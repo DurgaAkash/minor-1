@@ -45,9 +45,25 @@
       </section>
 
       <section class="dashboard-card admin-panel-card">
-        <div class="card-heading"><span>🤖</span><div><h2>Demand Analysis Assistant</h2><p>Simple rule-based analysis of check-ins and pending service requests.</p></div></div>
+        <div class="card-heading"><span>📁</span><div><h2>Historical Demand Dataset</h2><p>Passenger counts loaded from the project CSV dataset.</p></div></div>
+        <div id="dataset-status" class="small-note" aria-live="polite">Loading CSV dataset...</div>
+        <div id="dataset-summary" class="result-area"></div>
+      </section>
+
+      <section class="dashboard-card admin-panel-card">
+        <div class="card-heading"><span>📈</span><div><h2>Passenger Demand Prediction</h2><p>Next-day estimate using a three-record moving average for each route and time slot.</p></div></div>
+        <div id="demand-predictions" class="result-area"></div>
+      </section>
+
+      <section class="dashboard-card admin-panel-card">
+        <div class="card-heading"><span>🤖</span><div><h2>SmartRoute AI Agent Recommendations</h2><p>Analyzes predicted demand and suggests bus capacity and schedule changes. Admin makes the final decision.</p></div></div>
+        <div id="agent-recommendations" class="result-area"></div>
+        <button class="button button-secondary" id="refresh-analysis" type="button">Refresh Dataset & Analysis</button>
+      </section>
+
+      <section class="dashboard-card admin-panel-card">
+        <div class="card-heading"><span>📊</span><div><h2>Live Passenger Activity</h2><p>Additional demand reported through this browser's passenger check-ins and pending requests.</p></div></div>
         <div id="demand-analysis" class="result-area"></div>
-        <button class="button button-secondary" id="refresh-analysis" type="button">Refresh Analysis</button>
       </section>
       <p class="demo-warning">Prototype limitation: this demo uses browser localStorage. Passenger and admin pages must be opened in the same browser profile for request updates to be shared. Admin login is demo-only and is not secure authentication.</p>
     </div>
