@@ -55,3 +55,23 @@ a { color: inherit; text-decoration: none; }
 .site-footer { padding: 23px 7%; display: flex; justify-content: space-between; gap: 15px; color: #dbe6ef; background: #0d2948; font-size: .85rem; }
 @media (max-width: 850px) { .hero { grid-template-columns: 1fr; gap: 35px; } .feature-grid { grid-template-columns: repeat(2, 1fr); } }
 @media (max-width: 600px) { .site-header { flex-direction: column; } .main-nav { flex-wrap: wrap; justify-content: center; gap: 15px; } .hero { padding: 55px 7%; } .feature-grid { grid-template-columns: 1fr; } .about-band, .site-footer { flex-direction: column; align-items: flex-start; } }
+
+/* Passenger login module */
+.login-section { padding-top: 55px; }
+.login-card { width: min(100%, 520px); margin: 0 auto; padding: 30px; border: 1px solid var(--border); border-radius: 16px; background: white; box-shadow: 0 12px 35px rgba(30,60,80,.08); }
+.assistant-icon { width: 58px; height: 58px; display: grid; place-items: center; margin: 0 auto 12px; border-radius: 16px; background: #eaf7f0; font-size: 1.8rem; }
+.login-card > h3 { margin-bottom: 5px; color: var(--navy); text-align: center; }
+.muted-text { margin: 0 0 20px; color: var(--muted); text-align: center; font-size: .9rem; }
+.login-card label { display: block; margin: 14px 0 6px; color: var(--ink); font-size: .9rem; font-weight: 700; }
+.login-card input, .login-card textarea { width: 100%; padding: 12px 13px; border: 1px solid var(--border); border-radius: 8px; color: var(--ink); background: #fbfdfe; font: inherit; resize: vertical; }
+.login-card input:focus, .login-card textarea:focus { outline: 2px solid #b8e6d0; border-color: var(--green); }
+.full-button { width: 100%; margin-top: 15px; }
+.form-message { min-height: 22px; margin-top: 12px; font-size: .9rem; }
+.success-message { color: var(--green); }
+.error-message { color: #b54735; }
+.credentials-box { margin-top: 24px; padding-top: 22px; border-top: 1px solid var(--border); }
+.credentials-box h3 { color: var(--navy); }
+.credentials-box .muted-text { margin: 5px 0 14px; text-align: left; }
+.demo-note { margin-top: 12px; color: var(--muted); font-size: .82rem; text-align: center; }
+[hidden] { display: none !important; }
+@media (max-width: 600px) { .login-card { padding: 22px; } }
