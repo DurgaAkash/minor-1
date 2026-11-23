@@ -38,12 +38,76 @@ const demoRoutes = [
   { from: "tiruvuru", to: "vijayawada", service: "Town Express 303", time: "09:15 AM", duration: "1 hr 40 min" }
 ];
 
+// Interactive map: Leaflet + OpenStreetMap, with Nominatim geocoding and OSRM routing.
+let routeMap;
+let routeLayer;
+let routeMarkers = [];
+
+function initializeRouteMap() {
+  const mapElement = document.getElementById("route-map");
+  if (!mapElement || !window.L) return;
+
+  routeMap = L.map("route-map").setView([16.9, 80.9], 8);
+  L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    maxZoom: 19,
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+  }).addTo(routeMap);
+}
+
+async function geocodePlace(place) {
+  const url = "https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&q=" + encodeURIComponent(place);
+  const response = await fetch(url, { headers: { "Accept": "application/json" } });
+  if (!response.ok) throw new Error("Location lookup failed. Please try again.");
+  const locations = await response.json();
+  if (!locations.length) throw new Error('Could not find "' + place + '". Try adding the district or state.');
+  return {
+    lat: Number(locations[0].lat),
+    lon: Number(locations[0].lon),
+    label: locations[0].display_name
+  };
+}
+
+async function showRouteOnMap(from, to) {
+  const message = document.getElementById("map-message");
+  message.textContent = "Finding both locations and calculating a road route...";
+  try {
+    const [start, end] = await Promise.all([geocodePlace(from), geocodePlace(to)]);
+    const routeUrl = "https://router.project-osrm.org/route/v1/driving/" +
+      start.lon + "," + start.lat + ";" + end.lon + "," + end.lat +
+      "?overview=full&geometries=geojson";
+    const routeResponse = await fetch(routeUrl);
+    if (!routeResponse.ok) throw new Error("The route service is temporarily unavailable.");
+    const routeData = await routeResponse.json();
+    if (routeData.code !== "Ok" || !routeData.routes || !routeData.routes.length) {
+      throw new Error("No drivable route was returned for these locations.");
+    }
+
+    if (routeLayer) routeMap.removeLayer(routeLayer);
+    routeMarkers.forEach(marker => routeMap.removeLayer(marker));
+    routeMarkers = [];
+
+    routeMarkers.push(L.marker([start.lat, start.lon]).addTo(routeMap).bindPopup("Start: " + escapeHTML(from)));
+    routeMarkers.push(L.marker([end.lat, end.lon]).addTo(routeMap).bindPopup("Destination: " + escapeHTML(to)));
+    const coordinates = routeData.routes[0].geometry.coordinates.map(point => [point[1], point[0]]);
+    routeLayer = L.polyline(coordinates, { color: "#16845b", weight: 5 }).addTo(routeMap);
+    routeMap.fitBounds(routeLayer.getBounds(), { padding: [30, 30] });
+    const distanceKm = (routeData.routes[0].distance / 1000).toFixed(1);
+    const durationMin = Math.round(routeData.routes[0].duration / 60);
+    message.textContent = "Map route loaded • Approx. " + distanceKm + " km • " +
+      (durationMin >= 60 ? Math.floor(durationMin / 60) + " hr " + durationMin % 60 + " min" : durationMin + " min") +
+      ". Estimated road route, not live bus tracking.";
+  } catch (error) {
+    message.textContent = error.message || "Unable to load the map route right now.";
+  }
+}
+
 document.getElementById("route-form").addEventListener("submit", function (event) {
   event.preventDefault();
   const from = cleanText(document.getElementById("route-from").value);
   const to = cleanText(document.getElementById("route-to").value);
   const date = document.getElementById("route-date").value;
   const results = document.getElementById("route-results");
+  showRouteOnMap(from, to);
 
   if (from.toLowerCase() === to.toLowerCase()) {
     results.innerHTML = '<p class="error-message">Starting point and destination must be different.</p>';
@@ -127,6 +191,7 @@ document.getElementById("request-form").addEventListener("submit", function (eve
   this.reset();
   document.getElementById("request-count").value = 1;
   renderMyRequests();
+initializeRouteMap();
 });
 
 function renderMyRequests() {
