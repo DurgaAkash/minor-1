@@ -455,3 +455,10 @@ const savedUser = (() => {
   catch { return null; }
 })();
 if (savedUser && savedUser.role === "admin") showAdminDashboard();
+
+
+// Display Firebase setup status. Admin records remain local until secure authentication is connected.
+const adminCloudStatus = document.getElementById("cloud-status");
+if (adminCloudStatus && window.SmartRouteCloud) {
+  adminCloudStatus.textContent = window.SmartRouteCloud.status().message;
+}
