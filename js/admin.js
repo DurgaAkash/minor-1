@@ -1,5 +1,10 @@
-// SmartRoute AI admin dashboard. Demo data is shared through this browser's localStorage.
+// SmartRoute AI admin dashboard.
+// CSV demand forecasts and recommendations are beginner-friendly demo algorithms.
+// Passenger/admin data is stored in this browser's localStorage.
+
 const ADMIN_KEYS = { requests: "smartrouteRequests", checkins: "smartrouteCheckins", user: "smartrouteUser" };
+const BUS_CAPACITY = 50;
+let historicalDemand = [];
 
 function getStoredList(key) {
   try {
@@ -35,6 +40,7 @@ function showAdminDashboard() {
   document.getElementById("admin-dashboard").hidden = false;
   document.getElementById("admin-logout").hidden = false;
   renderAdminDashboard();
+  loadDemandDataset();
 }
 
 function renderAdminDashboard() {
@@ -49,6 +55,7 @@ function renderAdminDashboard() {
   document.getElementById("total-checkins").textContent = checkins.length;
   renderRequests(requests);
   renderDemandAnalysis(checkins, requests);
+  renderPredictionsAndAgent(checkins, requests);
 }
 
 function renderRequests(requests) {
@@ -80,6 +87,149 @@ function renderRequests(requests) {
   }).join("");
 }
 
+// Load and parse the CSV file from the repository.
+async function loadDemandDataset() {
+  const status = document.getElementById("dataset-status");
+  status.textContent = "Loading data/rural_transport_demand.csv ...";
+
+  try {
+    const response = await fetch("data/rural_transport_demand.csv", { cache: "no-store" });
+    if (!response.ok) throw new Error("CSV file could not be loaded. Open the site with VS Code Live Server.");
+    const csvText = await response.text();
+    historicalDemand = parseDemandCSV(csvText);
+    if (!historicalDemand.length) throw new Error("The CSV file has no valid demand records.");
+
+    status.textContent = "Dataset loaded successfully: " + historicalDemand.length +
+      " records from " + new Set(historicalDemand.map(row => row.date)).size + " dates. Sample data is synthetic.";
+    renderDatasetSummary();
+    renderAdminDashboard();
+  } catch (error) {
+    historicalDemand = [];
+    status.textContent = error.message;
+    document.getElementById("dataset-summary").innerHTML =
+      '<p class="error-message">Check that the data folder and CSV file are present, then reload with Live Server.</p>';
+    renderPredictionsAndAgent(getStoredList(ADMIN_KEYS.checkins), getStoredList(ADMIN_KEYS.requests));
+  }
+}
+
+function parseDemandCSV(csvText) {
+  const lines = csvText.trim().split(/\r?\n/);
+  if (lines.length < 2) return [];
+  const headers = lines[0].split(",").map(value => value.trim().toLowerCase());
+  const positions = {
+    date: headers.indexOf("date"),
+    source: headers.indexOf("source"),
+    destination: headers.indexOf("destination"),
+    time: headers.indexOf("time"),
+    passengers: headers.indexOf("passengers")
+  };
+  if (Object.values(positions).some(index => index < 0)) {
+    throw new Error("CSV must contain Date, Source, Destination, Time and Passengers columns.");
+  }
+
+  return lines.slice(1).map(line => {
+    const cells = line.split(",").map(value => value.trim());
+    return {
+      date: cells[positions.date],
+      from: cells[positions.source],
+      to: cells[positions.destination],
+      time: cells[positions.time],
+      passengers: Number(cells[positions.passengers])
+    };
+  }).filter(row => row.date && row.from && row.to && row.time && Number.isFinite(row.passengers) && row.passengers >= 0);
+}
+
+function renderDatasetSummary() {
+  const container = document.getElementById("dataset-summary");
+  const routeCount = new Set(historicalDemand.map(row => (row.from + "|" + row.to).toLowerCase())).size;
+  const totalPassengers = historicalDemand.reduce((sum, row) => sum + row.passengers, 0);
+  const dates = historicalDemand.map(row => row.date).sort();
+  container.innerHTML = `
+    <div class="dataset-metrics">
+      <div><strong>${historicalDemand.length}</strong><span>CSV records</span></div>
+      <div><strong>${routeCount}</strong><span>Routes</span></div>
+      <div><strong>${totalPassengers}</strong><span>Total recorded passenger trips</span></div>
+    </div>
+    <p class="small-note">Date range: ${safeText(dates[0])} to ${safeText(dates[dates.length - 1])}. Source: project sample CSV.</p>
+    <p class="small-note"><a href="data/rural_transport_demand.csv" download>Download CSV dataset</a></p>`;
+}
+
+// Forecast each route/time slot using the average of its latest three records.
+function calculateDemandForecast() {
+  const groups = new Map();
+  historicalDemand.forEach(row => {
+    const key = (row.from + "|" + row.to + "|" + row.time).toLowerCase();
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(row);
+  });
+
+  return Array.from(groups.values()).map(rows => {
+    rows.sort((a, b) => a.date.localeCompare(b.date));
+    const recentRows = rows.slice(-3);
+    const forecast = Math.round(recentRows.reduce((sum, row) => sum + row.passengers, 0) / recentRows.length);
+    const last = rows[rows.length - 1];
+    return { from: last.from, to: last.to, time: last.time, forecast, sampleCount: rows.length };
+  }).sort((a, b) => b.forecast - a.forecast);
+}
+
+function renderPredictionsAndAgent(checkins, requests) {
+  const predictionBox = document.getElementById("demand-predictions");
+  const agentBox = document.getElementById("agent-recommendations");
+  const forecasts = calculateDemandForecast();
+
+  if (!forecasts.length) {
+    predictionBox.innerHTML = '<p class="muted-text">No CSV forecast is available. Load the dataset to see predictions.</p>';
+    agentBox.innerHTML = '<p class="muted-text">The recommendation assistant is waiting for historical demand data.</p>';
+    return;
+  }
+
+  predictionBox.innerHTML = '<p class="small-note">Method: simple moving average of the latest three daily records in each route/time group. Forecasts are estimates, not guaranteed passenger counts.</p>' +
+    forecasts.map(item => `
+      <article class="demand-row">
+        <div><strong>${safeText(item.from)} → ${safeText(item.to)}</strong><p class="small-note">${safeText(item.time)} · Based on ${item.sampleCount} records</p></div>
+        <span class="demand-count">${item.forecast} passengers (estimated)</span>
+      </article>`).join("");
+
+  const recommendations = forecasts.map(item => {
+    const busesRequired = Math.max(1, Math.ceil(item.forecast / BUS_CAPACITY));
+    const extraBuses = Math.max(0, busesRequired - 1);
+    let action;
+    if (extraBuses > 0) {
+      action = "Consider " + extraBuses + " additional bus(es) for this time slot. Estimated demand exceeds one bus capacity.";
+    } else if (item.forecast >= BUS_CAPACITY * 0.8) {
+      action = "High demand: consider a second departure, a larger vehicle, or monitoring this time slot closely.";
+    } else {
+      action = "One bus may be sufficient based on the current estimate. Continue monitoring passenger check-ins.";
+    }
+
+    const liveCheckins = checkins.filter(entry =>
+      String(entry.from).toLowerCase() === item.from.toLowerCase() &&
+      String(entry.to).toLowerCase() === item.to.toLowerCase() &&
+      String(entry.time).toLowerCase() === item.time.toLowerCase()
+    ).reduce((sum, entry) => sum + (Number(entry.passengers) || 0), 0);
+    const pendingRequests = requests.filter(entry =>
+      entry.status === "PENDING" &&
+      String(entry.from).toLowerCase() === item.from.toLowerCase() &&
+      String(entry.to).toLowerCase() === item.to.toLowerCase() &&
+      String(entry.time).toLowerCase() === item.time.toLowerCase()
+    ).reduce((sum, entry) => sum + (Number(entry.passengers) || 0), 0);
+
+    return { ...item, busesRequired, extraBuses, action, liveCheckins, pendingRequests };
+  });
+
+  agentBox.innerHTML = `
+    <p class="small-note">Agent logic: compares predicted passengers with an assumed bus capacity of ${BUS_CAPACITY}. It also displays matching live check-ins and pending requests where available. Recommendations require admin approval.</p>
+    ` + recommendations.map((item, index) => `
+      <article class="agent-card">
+        <div class="request-top"><strong>${index + 1}. ${safeText(item.from)} → ${safeText(item.to)}</strong><span class="status-pill ${item.extraBuses ? "status-pending" : "status-available"}">${item.extraBuses ? "Extra capacity suggested" : "Monitor demand"}</span></div>
+        <p><strong>Time:</strong> ${safeText(item.time)}</p>
+        <p><strong>Predicted demand:</strong> ${item.forecast} passengers</p>
+        <p><strong>Estimated buses needed:</strong> ${item.busesRequired} (assuming ${BUS_CAPACITY} seats per bus and one existing bus)</p>
+        <p><strong>Current browser signals:</strong> ${item.liveCheckins} check-in passengers · ${item.pendingRequests} passengers in pending requests</p>
+        <p class="agent-action"><strong>Recommendation:</strong> ${safeText(item.action)}</p>
+      </article>`).join("");
+}
+
 function renderDemandAnalysis(checkins, requests) {
   const container = document.getElementById("demand-analysis");
   const totals = new Map();
@@ -102,11 +252,11 @@ function renderDemandAnalysis(checkins, requests) {
 
   const ranked = Array.from(totals.values()).sort((a, b) => b.passengers - a.passengers);
   if (!ranked.length) {
-    container.innerHTML = '<p class="muted-text">No check-in or pending request data is available yet. Passenger activity will appear here.</p>';
+    container.innerHTML = '<p class="muted-text">No browser check-in or pending request data yet. CSV-based forecasts are shown above.</p>';
     return;
   }
 
-  container.innerHTML = '<p class="small-note">Illustrative demand totals from browser check-ins plus pending request estimates. These are not ML predictions.</p>' +
+  container.innerHTML = '<p class="small-note">Passenger totals from this browser’s check-ins and pending service requests.</p>' +
     ranked.map((item, index) => `
       <article class="demand-row">
         <div><strong>${index + 1}. ${safeText(item.from)} → ${safeText(item.to)}</strong><p class="small-note">${item.records} record(s)</p></div>
@@ -120,7 +270,7 @@ function updateRequest(requestId, status) {
   if (index === -1) return;
 
   const note = document.getElementById("note-" + requestId);
-  requests[index].status = status;
+  requests[index].status = status === "approve" ? "APPROVED" : "REJECTED";
   requests[index].adminNote = note ? note.value.trim() : "";
   requests[index].reviewedAt = new Date().toISOString();
   localStorage.setItem(ADMIN_KEYS.requests, JSON.stringify(requests));
@@ -134,9 +284,9 @@ document.getElementById("admin-password").addEventListener("keydown", event => {
 document.getElementById("admin-request-list").addEventListener("click", event => {
   const button = event.target.closest("button[data-action]");
   if (!button) return;
-  updateRequest(button.dataset.id, button.dataset.action === "approve" ? "APPROVED" : "REJECTED");
+  updateRequest(button.dataset.id, button.dataset.action);
 });
-document.getElementById("refresh-analysis").addEventListener("click", renderAdminDashboard);
+document.getElementById("refresh-analysis").addEventListener("click", loadDemandDataset);
 document.getElementById("admin-logout").addEventListener("click", () => {
   localStorage.removeItem(ADMIN_KEYS.user);
   window.location.reload();
