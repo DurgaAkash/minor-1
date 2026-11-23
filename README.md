@@ -90,3 +90,13 @@ Keep this terminal running. The API starts at `http://127.0.0.1:5000`. Open or r
 - Admin can approve or reject each proposal and add a decision note.
 - Decisions are stored in browser localStorage and are limited to that browser profile.
 - These proposals are not live operator timetables. Real planning must account for travel duration, vehicle and driver availability, depot constraints and verified passenger demand.
+
+
+### Firebase cloud database foundation
+
+- Added a Firebase Web App configuration template at `js/firebase-config.js`.
+- Added a Firestore adapter at `js/cloud-store.js` with create, list, real-time subscribe and update helpers.
+- Added restrictive Firestore rules in `firebase/firestore.rules`. Users must be authenticated; admin access requires a trusted Firebase custom claim.
+- Added setup instructions in `firebase/README.md`.
+- Passenger and admin pages load the Firebase SDK and display the cloud setup status.
+- **Important:** current demo login and data forms still use localStorage. Cloud synchronization is not active until Firebase configuration and secure Firebase Authentication are completed. Do not use public read/write Firestore rules.
