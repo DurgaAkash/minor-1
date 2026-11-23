@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Passenger Dashboard | SmartRoute AI</title>
   <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
 </head>
 <body>
   <header class="site-header">
@@ -32,6 +33,9 @@
           <button class="button button-primary full-button" type="submit">Search Routes</button>
         </form>
         <div id="route-results" class="result-area" aria-live="polite"></div>
+        <h3 class="map-title">Route Map</h3>
+        <div id="route-map" role="region" aria-label="Map showing searched route"></div>
+        <p id="map-message" class="small-note map-message" aria-live="polite">Search a route to view its location on the map.</p>
       </section>
 
       <section class="dashboard-card">
@@ -67,6 +71,7 @@
     <p class="demo-warning">Prototype note: information is saved in this browser using localStorage. It is not yet shared between different devices or users. Dataset-based demand prediction and live bus tracking will be added in later steps.</p>
   </main>
 
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
   <script src="js/passenger.js"></script>
 </body>
 </html>
