@@ -11,7 +11,7 @@ A beginner-friendly frontend prototype for rural transportation planning.
 5. Admin request review, approval and rejection
 6. CSV-based historical rural passenger demand dataset
 7. Next-day demand estimates using a three-record moving average
-8. Rule-based recommendation assistant for bus capacity and schedule planning
+8. Random Forest Regression demand prediction through a Python API\n9. Rule-based recommendation assistant for bus capacity and schedule planning
 
 ### Project structure
 ```
@@ -38,7 +38,7 @@ minor-1/
 2. Open the project folder in VS Code.
 3. Start VS Code Live Server from `index.html`.
 4. Open `admin.html` and sign in with the demo admin credentials shown on the page.
-5. The admin page fetches `data/rural_transport_demand.csv` and displays demand forecasts and recommendations.
+5. The admin page fetches `data/rural_transport_demand.csv` and displays demand forecasts and recommendations.\n6. To enable Random Forest predictions, open a second VS Code terminal and run the Python service commands below.
 
 ### India-wide route search\n- Passengers can enter starting points and destinations anywhere in India; geocoding is restricted to India.\n- OpenStreetMap/Nominatim finds the locations and OSRM calculates an estimated driving route, distance and duration.\n- This does not provide verified bus operators, fares, schedules, seat availability or live GPS tracking.\n- Public map services may apply usage limits; production deployment should follow provider policies and consider a dedicated routing/geocoding service.\n\n### Dataset notes
 The included CSV is **synthetic sample data created for prototype testing**. It is not official APSRTC or government passenger data. Replace it with verified passenger counts before using the forecasts for real transport planning.
@@ -58,3 +58,27 @@ Columns: `Date, Source, Destination, Time, Passengers`.
 - Demo login credentials are not secure authentication.
 - Map routing is not live bus GPS tracking.
 - Use Live Server or another local HTTP server; opening HTML directly as a file can prevent CSV fetch from working.
+
+### Random Forest ML service
+
+The admin dashboard first tries to use the Python prediction API. If the API is not running, it automatically falls back to the existing three-record moving-average forecast.
+
+**Windows setup (run from the project root in a second VS Code terminal):**
+
+```powershell
+py -m venv .venv
+.venv\\Scripts\\activate
+pip install -r ml-service/requirements.txt
+python ml-service/app.py
+```
+
+Keep this terminal running. The API starts at `http://127.0.0.1:5000`. Open or refresh `admin.html` using Live Server in your browser. The dashboard requests `/api/predict` from the local Python service.
+
+**Model approach:**
+- Algorithm: `RandomForestRegressor` from Scikit-learn.
+- Features: route, time slot, previous day's passengers, previous two days' passengers, previous three-day average, and day of week.
+- Evaluation: temporal holdout (latest supervised record from each route/time group) with Mean Absolute Error (MAE).
+- The model is retrained from the CSV when a prediction request is made.
+- If Python dependencies or the service are unavailable, the dashboard continues using the moving-average fallback.
+
+**Limitations:** the included CSV has only a small number of synthetic observations. Random Forest output and MAE are demonstration results, not reliable real-world transport forecasts. Add a larger, verified dataset covering more dates, routes, holidays and seasonal variation before evaluating the model for actual planning. Bus capacity recommendations remain advisory and require admin approval.
