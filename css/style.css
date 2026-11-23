@@ -151,3 +151,10 @@ a { color: inherit; text-decoration: none; }
 .chart-panel h3 { margin-bottom: 12px; color: var(--navy); font-size: 1rem; }
 .chart-panel canvas { width: 100% !important; height: 280px !important; }
 @media (max-width: 750px) { .chart-grid { grid-template-columns: 1fr; } }
+
+
+/* Schedule optimization proposals */
+.schedule-card { margin: 12px 0; padding: 18px; border: 1px solid var(--border); border-left: 4px solid var(--blue); border-radius: 10px; background: #fbfdff; }
+.schedule-card p { margin-top: 7px; font-size: .9rem; }
+.schedule-card label { display: block; margin-top: 12px; font-size: .88rem; font-weight: 700; }
+.schedule-card textarea { width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 8px; font: inherit; }
