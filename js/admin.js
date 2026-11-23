@@ -5,6 +5,8 @@
 const ADMIN_KEYS = { requests: "smartrouteRequests", checkins: "smartrouteCheckins", user: "smartrouteUser" };
 const BUS_CAPACITY = 50;
 let historicalDemand = [];
+let routeDemandChart = null;
+let timeDemandChart = null;
 
 function getStoredList(key) {
   try {
@@ -56,6 +58,7 @@ function renderAdminDashboard() {
   renderRequests(requests);
   renderDemandAnalysis(checkins, requests);
   renderPredictionsAndAgent(checkins, requests);
+  renderDemandCharts(checkins);
 }
 
 function renderRequests(requests) {
@@ -262,6 +265,68 @@ function renderDemandAnalysis(checkins, requests) {
         <div><strong>${index + 1}. ${safeText(item.from)} → ${safeText(item.to)}</strong><p class="small-note">${item.records} record(s)</p></div>
         <span class="demand-count">${item.passengers} passenger(s)</span>
       </article>`).join("");
+}
+
+
+function renderDemandCharts(checkins) {
+  const status = document.getElementById("chart-status");
+  const routeCanvas = document.getElementById("route-demand-chart");
+  const timeCanvas = document.getElementById("time-demand-chart");
+  if (!routeCanvas || !timeCanvas) return;
+
+  if (!window.Chart) {
+    status.textContent = "Chart library could not load. Check your internet connection and refresh.";
+    return;
+  }
+  if (!historicalDemand.length) {
+    status.textContent = "Load the CSV dataset to display historical demand charts.";
+    return;
+  }
+
+  const routeTotals = new Map();
+  const timeTotals = new Map();
+  historicalDemand.forEach(row => {
+    const route = row.from + " → " + row.to;
+    routeTotals.set(route, (routeTotals.get(route) || 0) + row.passengers);
+    const slot = row.time;
+    timeTotals.set(slot, (timeTotals.get(slot) || 0) + row.passengers);
+  });
+
+  const topRoutes = Array.from(routeTotals.entries()).sort((a, b) => b[1] - a[1]).slice(0, 8);
+  const timeSlots = Array.from(timeTotals.entries()).sort((a, b) => a[0].localeCompare(b[0]));
+
+  if (routeDemandChart) routeDemandChart.destroy();
+  if (timeDemandChart) timeDemandChart.destroy();
+
+  routeDemandChart = new Chart(routeCanvas, {
+    type: "bar",
+    data: {
+      labels: topRoutes.map(item => item[0]),
+      datasets: [{ label: "Recorded passenger trips", data: topRoutes.map(item => item[1]), backgroundColor: "#16845b", borderRadius: 6 }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false }, tooltip: { callbacks: { label: context => context.parsed.y + " passengers" } } },
+      scales: { y: { beginAtZero: true, title: { display: true, text: "Passengers" } }, x: { ticks: { maxRotation: 35, minRotation: 0 } } }
+    }
+  });
+
+  timeDemandChart = new Chart(timeCanvas, {
+    type: "doughnut",
+    data: {
+      labels: timeSlots.map(item => item[0]),
+      datasets: [{ label: "Passenger trips", data: timeSlots.map(item => item[1]), backgroundColor: ["#16845b", "#1f5f91", "#e6a23c", "#8b70b5"] }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { position: "bottom" }, tooltip: { callbacks: { label: context => context.label + ": " + context.parsed + " passengers" } } }
+    }
+  });
+
+  const liveCount = checkins.reduce((sum, item) => sum + (Number(item.passengers) || 0), 0);
+  status.textContent = "Historical charts are based on " + historicalDemand.length + " synthetic CSV records. Current browser check-ins: " + liveCount + " passengers. The two sources are kept separate to avoid double counting.";
 }
 
 function updateRequest(requestId, status) {
