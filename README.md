@@ -82,3 +82,11 @@ Keep this terminal running. The API starts at `http://127.0.0.1:5000`. Open or r
 - If Python dependencies or the service are unavailable, the dashboard continues using the moving-average fallback.
 
 **Limitations:** the included CSV has only a small number of synthetic observations. Random Forest output and MAE are demonstration results, not reliable real-world transport forecasts. Add a larger, verified dataset covering more dates, routes, holidays and seasonal variation before evaluating the model for actual planning. Bus capacity recommendations remain advisory and require admin approval.
+
+
+### Schedule optimization
+- Converts predicted passenger demand into a suggested bus count using `ceil(predicted_passengers / 50)`.
+- Illustrative departures start at 7:00 AM (Morning), 12:00 PM (Afternoon), or 5:00 PM (Evening), spaced 30 minutes apart when multiple buses are suggested.
+- Admin can approve or reject each proposal and add a decision note.
+- Decisions are stored in browser localStorage and are limited to that browser profile.
+- These proposals are not live operator timetables. Real planning must account for travel duration, vehicle and driver availability, depot constraints and verified passenger demand.
