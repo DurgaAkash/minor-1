@@ -175,21 +175,58 @@ function calculateDemandForecast() {
   }).sort((a, b) => b.forecast - a.forecast);
 }
 
-function renderPredictionsAndAgent(checkins, requests) {
+async function renderPredictionsAndAgent(checkins, requests) {
   const predictionBox = document.getElementById("demand-predictions");
   const agentBox = document.getElementById("agent-recommendations");
-  const forecasts = calculateDemandForecast();
+  const modelStatus = document.getElementById("ml-model-status");
+  let forecasts = [];
+  let modelName = "Three-record moving average (fallback)";
+  let modelDetails = "Python ML service is not connected. Start the service to use Random Forest predictions.";
+
+  try {
+    const response = await fetch("http://127.0.0.1:5000/api/predict", {
+      method: "GET",
+      headers: { "Accept": "application/json" }
+    });
+    if (!response.ok) throw new Error("ML service returned HTTP " + response.status);
+    const result = await response.json();
+    if (!Array.isArray(result.predictions) || !result.predictions.length) {
+      throw new Error("The ML service returned no predictions.");
+    }
+    forecasts = result.predictions.map(item => ({
+      from: item.source,
+      to: item.destination,
+      time: item.time,
+      forecast: Math.max(0, Math.round(item.predicted_passengers)),
+      sampleCount: item.training_records
+    }));
+    modelName = result.model || "Random Forest Regression";
+    modelDetails = "Random Forest model active • " + result.training_samples +
+      " training samples • Holdout MAE: " + result.mae + " passengers • Forecast date: " + result.forecast_date +
+      ". Small synthetic dataset: treat results as a prototype estimate.";
+    if (modelStatus) {
+      modelStatus.textContent = modelDetails;
+      modelStatus.className = "small-note success-message";
+    }
+  } catch (error) {
+    forecasts = calculateDemandForecast();
+    if (modelStatus) {
+      modelStatus.textContent = modelDetails + " " + error.message;
+      modelStatus.className = "small-note error-message";
+    }
+  }
 
   if (!forecasts.length) {
-    predictionBox.innerHTML = '<p class="muted-text">No CSV forecast is available. Load the dataset to see predictions.</p>';
-    agentBox.innerHTML = '<p class="muted-text">The recommendation assistant is waiting for historical demand data.</p>';
+    predictionBox.innerHTML = '<p class="muted-text">No demand forecast is available. Check the CSV dataset and prediction service.</p>';
+    agentBox.innerHTML = '<p class="muted-text">The recommendation assistant is waiting for demand data.</p>';
     return;
   }
 
-  predictionBox.innerHTML = '<p class="small-note">Method: simple moving average of the latest three daily records in each route/time group. Forecasts are estimates, not guaranteed passenger counts.</p>' +
-    forecasts.map(item => `
+  predictionBox.innerHTML = '<p class="small-note">Prediction method: ' + safeText(modelName) +
+    '. Forecasts are estimates, not guaranteed passenger counts.</p>' +
+    forecasts.sort((a, b) => b.forecast - a.forecast).map(item => `
       <article class="demand-row">
-        <div><strong>${safeText(item.from)} → ${safeText(item.to)}</strong><p class="small-note">${safeText(item.time)} · Based on ${item.sampleCount} records</p></div>
+        <div><strong>${safeText(item.from)} → ${safeText(item.to)}</strong><p class="small-note">${safeText(item.time)} · Based on ${item.sampleCount} training records</p></div>
         <span class="demand-count">${item.forecast} passengers (estimated)</span>
       </article>`).join("");
 
@@ -221,7 +258,7 @@ function renderPredictionsAndAgent(checkins, requests) {
   });
 
   agentBox.innerHTML = `
-    <p class="small-note">Agent logic: compares predicted passengers with an assumed bus capacity of ${BUS_CAPACITY}. It also displays matching live check-ins and pending requests where available. Recommendations require admin approval.</p>
+    <p class="small-note">Recommendation assistant uses the ${safeText(modelName)} forecast and an assumed bus capacity of ${BUS_CAPACITY}. Recommendations require admin approval.</p>
     ` + recommendations.map((item, index) => `
       <article class="agent-card">
         <div class="request-top"><strong>${index + 1}. ${safeText(item.from)} → ${safeText(item.to)}</strong><span class="status-pill ${item.extraBuses ? "status-pending" : "status-available"}">${item.extraBuses ? "Extra capacity suggested" : "Monitor demand"}</span></div>
