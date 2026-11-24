@@ -1,5 +1,6 @@
 from datetime import timedelta
 from pathlib import Path
+import sqlite3
 
 import pandas as pd
 from flask import Flask, jsonify
@@ -12,6 +13,7 @@ from sklearn.preprocessing import OneHotEncoder
 
 ROOT = Path(__file__).resolve().parent.parent
 DATA_FILE = ROOT / "data" / "rural_transport_demand.csv"
+DB_FILE = ROOT / "backend" / "smartroute.db"
 
 app = Flask(__name__)
 CORS(app)
@@ -35,7 +37,7 @@ def make_model():
     ])
 
 
-def load_data():
+def load_csv_data():
     if not DATA_FILE.exists():
         raise FileNotFoundError(f"Dataset not found: {DATA_FILE}")
     data = pd.read_csv(DATA_FILE)
@@ -46,11 +48,87 @@ def load_data():
     data["Passengers"] = pd.to_numeric(data["Passengers"], errors="coerce")
     data = data.dropna(subset=["Date", "Source", "Destination", "Time", "Passengers"])
     data = data[data["Passengers"] >= 0].copy()
-    if data.empty:
-        raise ValueError("Dataset contains no valid passenger records.")
-    data["route"] = data["Source"].astype(str).str.strip() + " -> " + data["Destination"].astype(str).str.strip()
+    data["Source"] = data["Source"].astype(str).str.strip()
+    data["Destination"] = data["Destination"].astype(str).str.strip()
     data["Time"] = data["Time"].astype(str).str.strip()
-    return data.sort_values("Date")
+    return data
+
+
+def load_sqlite_checkins():
+    if not DB_FILE.exists():
+        return pd.DataFrame(columns=["Date", "Source", "Destination", "Time", "Passengers"]), 0
+
+    try:
+        with sqlite3.connect(DB_FILE) as conn:
+            tables = pd.read_sql_query(
+                "SELECT name FROM sqlite_master WHERE type='table' AND name='checkins'",
+                conn
+            )
+            if tables.empty:
+                return pd.DataFrame(columns=["Date", "Source", "Destination", "Time", "Passengers"]), 0
+            rows = pd.read_sql_query(
+                "SELECT source, destination, travel_time, passengers, created_at FROM checkins",
+                conn
+            )
+    except sqlite3.Error as error:
+        raise RuntimeError(f"Could not read SQLite check-ins: {error}") from error
+
+    if rows.empty:
+        return pd.DataFrame(columns=["Date", "Source", "Destination", "Time", "Passengers"]), 0
+
+    raw_count = len(rows)
+    rows["Date"] = pd.to_datetime(rows["created_at"], errors="coerce")
+    rows["Passengers"] = pd.to_numeric(rows["passengers"], errors="coerce")
+    rows = rows.dropna(subset=["Date", "Passengers"])
+    rows = rows[rows["Passengers"] >= 0].copy()
+    rows["Date"] = rows["Date"].dt.normalize()
+    rows["Source"] = rows["source"].astype(str).str.strip()
+    rows["Destination"] = rows["destination"].astype(str).str.strip()
+    rows["Time"] = rows["travel_time"].astype(str).str.strip()
+    rows = rows[["Date", "Source", "Destination", "Time", "Passengers"]]
+
+    # Multiple check-ins for the same route and time on one day become one daily total.
+    daily = rows.groupby(
+        ["Date", "Source", "Destination", "Time"], as_index=False
+    )["Passengers"].sum()
+    return daily, raw_count
+
+
+def load_data():
+    csv_data = load_csv_data()
+    if csv_data.empty:
+        raise ValueError("CSV dataset contains no valid passenger records.")
+
+    live_data, raw_checkin_count = load_sqlite_checkins()
+
+    # For a date/route/time already represented in the CSV, prefer the real SQLite
+    # daily total instead of adding synthetic and real counts together.
+    if not live_data.empty:
+        keys = ["Date", "Source", "Destination", "Time"]
+        csv_data = csv_data.merge(
+            live_data[keys].drop_duplicates(),
+            on=keys,
+            how="left",
+            indicator=True
+        )
+        csv_data = csv_data[csv_data["_merge"] == "left_only"].drop(
+            columns=["_merge"]
+        )
+        data = pd.concat([csv_data, live_data], ignore_index=True)
+    else:
+        data = csv_data
+
+    data["route"] = data["Source"] + " -> " + data["Destination"]
+    data["Time"] = data["Time"].astype(str).str.strip()
+    data = data.sort_values("Date").reset_index(drop=True)
+
+    source_info = {
+        "csv_records_used": int(len(csv_data)),
+        "sqlite_daily_records_used": int(len(live_data)),
+        "sqlite_checkin_submissions": int(raw_checkin_count),
+        "combined_daily_records": int(len(data)),
+    }
+    return data, source_info
 
 
 def build_training_rows(data):
@@ -77,12 +155,14 @@ def build_training_rows(data):
 
 
 def train_and_predict():
-    data = load_data()
+    data, source_info = load_data()
     training_rows = build_training_rows(data)
     if len(training_rows) < 10:
-        raise ValueError("At least 10 training examples are required. Add more daily CSV records.")
+        raise ValueError(
+            "At least 10 training examples are required. Add more daily CSV records "
+            "or collect more check-ins across multiple days."
+        )
 
-    # Hold out the latest available supervised example for each route/time group.
     validation_indices = training_rows.groupby(["route", "time"]).tail(1).index
     train_part = training_rows.drop(index=validation_indices)
     validation_part = training_rows.loc[validation_indices]
@@ -95,7 +175,6 @@ def train_and_predict():
     validation_predictions = validation_model.predict(validation_part[CATEGORICAL_FEATURES + NUMERIC_FEATURES])
     mae = mean_absolute_error(validation_part["target"], validation_predictions)
 
-    # Refit on all available examples before producing the next-day forecast.
     final_model = make_model()
     final_model.fit(training_rows[CATEGORICAL_FEATURES + NUMERIC_FEATURES], training_rows["target"])
 
@@ -141,14 +220,23 @@ def train_and_predict():
         "training_samples": int(len(training_rows)),
         "validation_samples": int(len(validation_part)),
         "mae": round(float(mae), 2),
+        "data_sources": source_info,
         "predictions": predictions,
-        "note": "Prototype model trained on the supplied CSV. The included dataset is synthetic sample data, not official transport data.",
+        "note": (
+            "Forecast uses the project CSV plus daily passenger check-in totals from "
+            "the local SQLite database. CSV records are synthetic sample data; "
+            "SQLite check-ins are user-entered prototype data."
+        ),
     }
 
 
 @app.get("/api/health")
 def health():
-    return jsonify({"status": "ok", "service": "SmartRoute AI Random Forest API"})
+    return jsonify({
+        "status": "ok",
+        "service": "SmartRoute AI Random Forest API",
+        "sqlite_available": DB_FILE.exists()
+    })
 
 
 @app.get("/api/predict")
