@@ -216,6 +216,31 @@ document.getElementById("request-form").addEventListener("submit", async functio
   renderMyRequests();
 });
 
+async function renderPublishedSchedules() {
+  const container = document.getElementById("published-schedules");
+  if (!container) return;
+  try {
+    const response = await fetch("http://127.0.0.1:5001/api/schedules?published_only=true");
+    if (!response.ok) throw new Error("Published schedules could not be loaded.");
+    const schedules = await response.json();
+    if (!schedules.length) {
+      container.innerHTML = '<p class="muted-text">No approved bus schedules have been published yet.</p>';
+      return;
+    }
+    container.innerHTML = schedules.map(item => `
+      <article class="request-result">
+        <div class="request-top"><strong>${escapeHTML(item.source)} → ${escapeHTML(item.destination)}</strong><span class="status-pill status-approved">PUBLISHED</span></div>
+        <p><strong>Time slot:</strong> ${escapeHTML(item.time_slot)}</p>
+        <p><strong>Estimated demand:</strong> ${Number(item.predicted_passengers)} passengers · <strong>Suggested buses:</strong> ${Number(item.buses)}</p>
+        <p><strong>Departure proposals:</strong> ${(item.departures || []).map(escapeHTML).join(" · ")}</p>
+        ${item.admin_note ? `<p class="admin-note">Admin: ${escapeHTML(item.admin_note)}</p>` : ""}
+        <p class="small-note">Admin-approved prototype schedule. Confirm with the bus operator before travelling.</p>
+      </article>`).join("");
+  } catch (error) {
+    container.innerHTML = '<p class="error-message">Unable to load published schedules. Make sure the SQLite backend is running.</p>';
+  }
+}
+
 async function renderMyRequests() {
   const container = document.getElementById("my-requests");
   try {
@@ -252,6 +277,7 @@ function logoutPassenger() {
 document.getElementById("route-date").min = new Date().toISOString().split("T")[0];
 document.getElementById("route-date").value = new Date().toISOString().split("T")[0];
 renderMyRequests();
+renderPublishedSchedules();
 initializeRouteMap();
 
 const passengerCloudStatus = document.getElementById("cloud-status");
