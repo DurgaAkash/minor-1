@@ -274,43 +274,67 @@ async function renderPredictionsAndAgent(checkins, requests) {
         <span class="demand-count">${item.forecast} passengers (estimated)</span>
       </article>`).join("");
 
+  // Explainable decision-agent layer built on top of the ML forecast.
   const recommendations = forecasts.map(item => {
-    const busesRequired = Math.max(1, Math.ceil(item.forecast / BUS_CAPACITY));
+    const sameRoute = entry =>
+      String(entry.from).trim().toLowerCase() === item.from.trim().toLowerCase() &&
+      String(entry.to).trim().toLowerCase() === item.to.trim().toLowerCase() &&
+      String(entry.time).trim().toLowerCase() === item.time.trim().toLowerCase();
+
+    const liveCheckins = checkins.filter(sameRoute)
+      .reduce((sum, entry) => sum + (Number(entry.passengers) || 0), 0);
+    const pendingRequests = requests.filter(entry =>
+      entry.status === "PENDING" && sameRoute(entry)
+    ).reduce((sum, entry) => sum + (Number(entry.passengers) || 0), 0);
+
+    // Check-ins already feed the ML training data, so do not count them twice.
+    // Half of pending request passengers are used as an extra planning signal.
+    const planningDemand = Math.max(0, Math.ceil(item.forecast + pendingRequests * 0.5));
+    const busesRequired = Math.max(1, Math.ceil(planningDemand / BUS_CAPACITY));
     const extraBuses = Math.max(0, busesRequired - 1);
-    let action;
+    const utilization = planningDemand / (busesRequired * BUS_CAPACITY);
+    const confidence = item.sampleCount >= 10 ? "Stronger history" :
+      item.sampleCount >= 5 ? "Moderate history" : "Limited history";
+
+    let priority = "NORMAL";
+    let action = "Keep the current service and monitor demand.";
+    let reason = "Estimated demand fits within one assumed bus capacity.";
     if (extraBuses > 0) {
-      action = "Consider " + extraBuses + " additional bus(es) for this time slot. Estimated demand exceeds one bus capacity.";
-    } else if (item.forecast >= BUS_CAPACITY * 0.8) {
-      action = "High demand: consider a second departure, a larger vehicle, or monitoring this time slot closely.";
-    } else {
-      action = "One bus may be sufficient based on the current estimate. Continue monitoring passenger check-ins.";
+      priority = "HIGH";
+      action = "Plan " + extraBuses + " additional bus(es) for this route and time slot.";
+      reason = "Planning demand exceeds the assumed capacity of one bus.";
+    } else if (utilization >= 0.8) {
+      priority = "HIGH";
+      action = "Consider an additional departure or a larger vehicle.";
+      reason = "Estimated capacity usage is at least 80%.";
+    } else if (pendingRequests > 0) {
+      priority = "REVIEW";
+      action = "Review pending passenger requests before confirming the service.";
+      reason = "Unapproved requests indicate additional possible demand.";
     }
 
-    const liveCheckins = checkins.filter(entry =>
-      String(entry.from).toLowerCase() === item.from.toLowerCase() &&
-      String(entry.to).toLowerCase() === item.to.toLowerCase() &&
-      String(entry.time).toLowerCase() === item.time.toLowerCase()
-    ).reduce((sum, entry) => sum + (Number(entry.passengers) || 0), 0);
-    const pendingRequests = requests.filter(entry =>
-      entry.status === "PENDING" &&
-      String(entry.from).toLowerCase() === item.from.toLowerCase() &&
-      String(entry.to).toLowerCase() === item.to.toLowerCase() &&
-      String(entry.time).toLowerCase() === item.time.toLowerCase()
-    ).reduce((sum, entry) => sum + (Number(entry.passengers) || 0), 0);
-
-    return { ...item, busesRequired, extraBuses, action, liveCheckins, pendingRequests };
-  });
+    return {
+      ...item, planningDemand, busesRequired, extraBuses, action, reason,
+      priority, utilization: Math.round(utilization * 100),
+      liveCheckins, pendingRequests, confidence
+    };
+  }).sort((a, b) =>
+    ({ HIGH: 0, REVIEW: 1, NORMAL: 2 }[a.priority] - { HIGH: 0, REVIEW: 1, NORMAL: 2 }[b.priority]) ||
+    b.planningDemand - a.planningDemand
+  );
 
   agentBox.innerHTML = `
-    <p class="small-note">Recommendation assistant uses the ${safeText(modelName)} forecast and an assumed bus capacity of ${BUS_CAPACITY}. Recommendations require admin approval.</p>
+    <p class="small-note">Decision agent combines the ML forecast with pending requests, ranks service urgency, estimates bus capacity and explains its reasoning. Check-ins are not added twice because they already feed the ML model. Admin approval is always required.</p>
     ` + recommendations.map((item, index) => `
       <article class="agent-card">
-        <div class="request-top"><strong>${index + 1}. ${safeText(item.from)} → ${safeText(item.to)}</strong><span class="status-pill ${item.extraBuses ? "status-pending" : "status-available"}">${item.extraBuses ? "Extra capacity suggested" : "Monitor demand"}</span></div>
+        <div class="request-top"><strong>${index + 1}. ${safeText(item.from)} → ${safeText(item.to)}</strong><span class="status-pill ${item.priority === "HIGH" ? "status-pending" : item.priority === "REVIEW" ? "status-pending" : "status-available"}">${safeText(item.priority)} PRIORITY</span></div>
         <p><strong>Time:</strong> ${safeText(item.time)}</p>
-        <p><strong>Predicted demand:</strong> ${item.forecast} passengers</p>
-        <p><strong>Estimated buses needed:</strong> ${item.busesRequired} (assuming ${BUS_CAPACITY} seats per bus and one existing bus)</p>
-        <p><strong>Current browser signals:</strong> ${item.liveCheckins} check-in passengers · ${item.pendingRequests} passengers in pending requests</p>
-        <p class="agent-action"><strong>Recommendation:</strong> ${safeText(item.action)}</p>
+        <p><strong>ML forecast:</strong> ${item.forecast} passengers · <strong>Planning estimate:</strong> ${item.planningDemand} passengers</p>
+        <p><strong>Estimated buses:</strong> ${item.busesRequired} at ${BUS_CAPACITY} assumed seats each · <strong>Capacity use:</strong> ${item.utilization}%</p>
+        <p><strong>Evidence:</strong> ${item.liveCheckins} check-in passengers · ${item.pendingRequests} passengers in pending requests</p>
+        <p><strong>Data confidence:</strong> ${safeText(item.confidence)} (${item.sampleCount} route records)</p>
+        <p><strong>Why:</strong> ${safeText(item.reason)}</p>
+        <p class="agent-action"><strong>Agent recommendation:</strong> ${safeText(item.action)}</p>
       </article>`).join("");
   renderSchedulePlans(recommendations);
 }
