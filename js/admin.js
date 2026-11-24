@@ -228,9 +228,12 @@ async function renderPredictionsAndAgent(checkins, requests) {
       sampleCount: item.training_records
     }));
     modelName = result.model || "Random Forest Regression";
+    const sources = result.data_sources || {};
     modelDetails = "Random Forest model active • " + result.training_samples +
       " training samples • Holdout MAE: " + result.mae + " passengers • Forecast date: " + result.forecast_date +
-      ". Small synthetic dataset: treat results as a prototype estimate.";
+      " • SQLite check-ins used: " + (sources.sqlite_checkin_submissions || 0) +
+      " • CSV rows used: " + (sources.csv_records_used || 0) +
+      ". CSV data is synthetic and SQLite check-ins are prototype user-entered data; treat forecasts as estimates.";
     if (modelStatus) {
       modelStatus.textContent = modelDetails;
       modelStatus.className = "small-note success-message";
