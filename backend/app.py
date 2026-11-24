@@ -46,6 +46,22 @@ def initialize_database():
     if "admin_note" not in columns:
         conn.execute("ALTER TABLE requests ADD COLUMN admin_note TEXT DEFAULT ''")
 
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS schedules (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            route_key TEXT NOT NULL UNIQUE,
+            source TEXT NOT NULL,
+            destination TEXT NOT NULL,
+            time_slot TEXT NOT NULL,
+            predicted_passengers INTEGER NOT NULL,
+            buses INTEGER NOT NULL,
+            departures TEXT NOT NULL,
+            status TEXT NOT NULL DEFAULT 'PENDING',
+            admin_note TEXT DEFAULT '',
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+
     conn.commit()
     conn.close()
 
@@ -176,6 +192,106 @@ def get_requests():
     conn.close()
 
     return jsonify([dict(row) for row in rows])
+
+
+@app.route("/api/schedules", methods=["GET"])
+def get_schedules():
+    published_only = request.args.get("published_only", "false").lower() == "true"
+    conn = get_db()
+    if published_only:
+        rows = conn.execute(
+            "SELECT * FROM schedules WHERE status = 'APPROVED' ORDER BY source, destination, time_slot"
+        ).fetchall()
+    else:
+        rows = conn.execute(
+            "SELECT * FROM schedules ORDER BY updated_at DESC, id DESC"
+        ).fetchall()
+    conn.close()
+
+    results = []
+    for row in rows:
+        item = dict(row)
+        try:
+            item["departures"] = __import__("json").loads(item["departures"])
+        except (TypeError, ValueError):
+            item["departures"] = []
+        results.append(item)
+    return jsonify(results)
+
+
+@app.route("/api/schedules", methods=["POST"])
+def save_schedule_proposal():
+    data = request.get_json(silent=True) or {}
+    source = str(data.get("source", "")).strip()
+    destination = str(data.get("destination", "")).strip()
+    time_slot = str(data.get("time_slot", "")).strip()
+    departures = data.get("departures", [])
+
+    try:
+        predicted = int(data.get("predicted_passengers"))
+        buses = int(data.get("buses"))
+        if predicted < 0 or buses < 1 or not isinstance(departures, list):
+            raise ValueError()
+    except (TypeError, ValueError):
+        return jsonify({"error": "Invalid passenger forecast, bus count or departures"}), 400
+
+    if not source or not destination or not time_slot or source.casefold() == destination.casefold():
+        return jsonify({"error": "Source, destination and time slot are required"}), 400
+
+    route_key = "|".join([source.casefold(), destination.casefold(), time_slot.casefold()])
+    departures_json = __import__("json").dumps([str(value) for value in departures])
+
+    conn = get_db()
+    conn.execute("""
+        INSERT INTO schedules
+        (route_key, source, destination, time_slot, predicted_passengers, buses, departures, status)
+        VALUES (?, ?, ?, ?, ?, ?, ?, 'PENDING')
+        ON CONFLICT(route_key) DO UPDATE SET
+            source = excluded.source,
+            destination = excluded.destination,
+            time_slot = excluded.time_slot,
+            status = CASE
+                WHEN schedules.predicted_passengers != excluded.predicted_passengers
+                  OR schedules.buses != excluded.buses
+                  OR schedules.departures != excluded.departures
+                THEN 'PENDING'
+                ELSE schedules.status
+            END,
+            predicted_passengers = excluded.predicted_passengers,
+            buses = excluded.buses,
+            departures = excluded.departures,
+            updated_at = CURRENT_TIMESTAMP
+    """, (route_key, source, destination, time_slot, predicted, buses, departures_json))
+    conn.commit()
+    row = conn.execute("SELECT * FROM schedules WHERE route_key = ?", (route_key,)).fetchone()
+    conn.close()
+    result = dict(row)
+    result["departures"] = __import__("json").loads(result["departures"])
+    return jsonify(result), 200
+
+
+@app.route("/api/schedules/<int:schedule_id>", methods=["PATCH"])
+def review_schedule(schedule_id):
+    data = request.get_json(silent=True) or {}
+    status = str(data.get("status", "")).upper()
+    admin_note = str(data.get("admin_note", "")).strip()
+    if status not in ("APPROVED", "REJECTED"):
+        return jsonify({"error": "Status must be APPROVED or REJECTED"}), 400
+
+    conn = get_db()
+    cursor = conn.execute(
+        "UPDATE schedules SET status = ?, admin_note = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
+        (status, admin_note, schedule_id)
+    )
+    if cursor.rowcount == 0:
+        conn.close()
+        return jsonify({"error": "Schedule proposal not found"}), 404
+    row = conn.execute("SELECT * FROM schedules WHERE id = ?", (schedule_id,)).fetchone()
+    conn.commit()
+    conn.close()
+    result = dict(row)
+    result["departures"] = __import__("json").loads(result["departures"])
+    return jsonify({"message": "Schedule decision saved", "schedule": result})
 
 
 if __name__ == "__main__":
