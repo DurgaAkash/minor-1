@@ -27,7 +27,7 @@
     </div>
 
     <div id="admin-dashboard" hidden>
-      <p id="cloud-status" class="small-note" aria-live="polite">Checking cloud database setup...</p>
+      <p id="cloud-status" class="small-note" aria-live="polite">Checking SQLite database connection...</p>
       <div class="dashboard-welcome">
         <div><span class="eyebrow">ADMINISTRATION</span><h1>Transport Control Dashboard</h1><p>Review passenger demand and decide which service requests should be approved.</p></div>
         <div class="welcome-icon">📊</div>
@@ -80,7 +80,7 @@
         <div class="card-heading"><span>📊</span><div><h2>Live Passenger Activity</h2><p>Additional demand reported through this browser's passenger check-ins and pending requests.</p></div></div>
         <div id="demand-analysis" class="result-area"></div>
       </section>
-      <p class="demo-warning">Prototype limitation: records still use browser localStorage. Firebase Authentication and cloud data synchronization are not active yet. The current admin login is demo-only and is not secure authentication.</p>
+      <p class="demo-warning">Prototype limitation: passenger records are stored in a local SQLite database on the backend computer. Admin login is demo-only and is not secure authentication; do not expose this backend publicly.</p>
     </div>
   </main>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
