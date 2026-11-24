@@ -45,9 +45,36 @@ function showAdminDashboard() {
   loadDemandDataset();
 }
 
-function renderAdminDashboard() {
-  const requests = getStoredList(ADMIN_KEYS.requests);
-  const checkins = getStoredList(ADMIN_KEYS.checkins);
+async function renderAdminDashboard() {
+  let requests = [];
+  let checkins = [];
+  try {
+    const responses = await Promise.all([
+      fetch("http://127.0.0.1:5001/api/requests"),
+      fetch("http://127.0.0.1:5001/api/checkins")
+    ]);
+    if (responses.some(response => !response.ok)) throw new Error("SQLite API request failed.");
+    const [requestRows, checkinRows] = await Promise.all(responses.map(response => response.json()));
+    requests = requestRows.map(row => ({
+      id: String(row.id), from: row.source, to: row.destination,
+      time: row.preferred_time, passengers: row.expected_passengers,
+      reason: row.reason, status: row.status, adminNote: row.admin_note || "",
+      createdAt: row.created_at, dbId: row.id
+    }));
+    checkins = checkinRows.map(row => ({
+      id: String(row.id), from: row.source, to: row.destination,
+      time: row.travel_time, passengers: row.passengers, createdAt: row.created_at
+    }));
+    localStorage.setItem(ADMIN_KEYS.requests, JSON.stringify(requests));
+    localStorage.setItem(ADMIN_KEYS.checkins, JSON.stringify(checkins));
+    const status = document.getElementById("cloud-status");
+    if (status) status.textContent = "SQLite connected. Passenger data loaded from the database.";
+  } catch (error) {
+    const status = document.getElementById("cloud-status");
+    if (status) status.textContent = "SQLite backend unavailable. Start python backend/app.py and refresh.";
+    document.getElementById("admin-request-list").innerHTML = '<p class="error-message">Could not load passenger records from SQLite.</p>';
+    return;
+  }
   const pending = requests.filter(item => item.status === "PENDING").length;
   const approved = requests.filter(item => item.status === "APPROVED").length;
 
@@ -418,17 +445,21 @@ function renderDemandCharts(checkins) {
   status.textContent = "Historical charts are based on " + historicalDemand.length + " synthetic CSV records. Current browser check-ins: " + liveCount + " passengers. The two sources are kept separate to avoid double counting.";
 }
 
-function updateRequest(requestId, status) {
-  const requests = getStoredList(ADMIN_KEYS.requests);
-  const index = requests.findIndex(item => item.id === requestId);
-  if (index === -1) return;
-
+async function updateRequest(requestId, action) {
   const note = document.getElementById("note-" + requestId);
-  requests[index].status = status === "approve" ? "APPROVED" : "REJECTED";
-  requests[index].adminNote = note ? note.value.trim() : "";
-  requests[index].reviewedAt = new Date().toISOString();
-  localStorage.setItem(ADMIN_KEYS.requests, JSON.stringify(requests));
-  renderAdminDashboard();
+  const status = action === "approve" ? "APPROVED" : "REJECTED";
+  try {
+    const response = await fetch("http://127.0.0.1:5001/api/requests/" + encodeURIComponent(requestId), {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status, admin_note: note ? note.value.trim() : "" })
+    });
+    const result = await response.json();
+    if (!response.ok) throw new Error(result.error || "Could not update request.");
+    await renderAdminDashboard();
+  } catch (error) {
+    alert("Request update failed: " + error.message);
+  }
 }
 
 document.getElementById("admin-login-button").addEventListener("click", adminLogin);
@@ -457,8 +488,4 @@ const savedUser = (() => {
 if (savedUser && savedUser.role === "admin") showAdminDashboard();
 
 
-// Display Firebase setup status. Admin records remain local until secure authentication is connected.
-const adminCloudStatus = document.getElementById("cloud-status");
-if (adminCloudStatus && window.SmartRouteCloud) {
-  adminCloudStatus.textContent = window.SmartRouteCloud.status().message;
-}
+// Database connection status is updated after records are loaded from the Flask API.
