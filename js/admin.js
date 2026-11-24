@@ -5,6 +5,7 @@
 const ADMIN_KEYS = { requests: "smartrouteRequests", checkins: "smartrouteCheckins", user: "smartrouteUser", schedules: "smartrouteSchedules" };
 const BUS_CAPACITY = 50;
 let historicalDemand = [];
+let dashboardInitialization = null;
 let routeDemandChart = null;
 let timeDemandChart = null;
 
@@ -41,11 +42,21 @@ function showAdminDashboard() {
   document.getElementById("admin-login").hidden = true;
   document.getElementById("admin-dashboard").hidden = false;
   document.getElementById("admin-logout").hidden = false;
-  renderAdminDashboard();
-  loadDemandDataset();
+
+  // Start one dashboard initialization only. Previously the page fetched
+  // dashboard data immediately and then fetched it again after the CSV loaded.
+  if (!dashboardInitialization) {
+    dashboardInitialization = (async () => {
+      await loadDemandDataset();
+      await renderAdminDashboard();
+    })().catch(error => {
+      console.error("Admin dashboard initialization failed:", error);
+      dashboardInitialization = null;
+    });
+  }
 }
 
-async function renderAdminDashboard() {
+async function renderAdminDashboard(options = {}) {
   let requests = [];
   let checkins = [];
   try {
@@ -84,8 +95,13 @@ async function renderAdminDashboard() {
   document.getElementById("total-checkins").textContent = checkins.length;
   renderRequests(requests);
   renderDemandAnalysis(checkins, requests);
-  renderPredictionsAndAgent(checkins, requests);
   renderDemandCharts(checkins);
+
+  // Re-run the ML forecast and create schedule proposals only for initial
+  // loading or an explicit analysis refresh, not after every request decision.
+  if (options.refreshAnalysis !== false) {
+    await renderPredictionsAndAgent(checkins, requests);
+  }
 }
 
 function renderRequests(requests) {
@@ -132,13 +148,11 @@ async function loadDemandDataset() {
     status.textContent = "Dataset loaded successfully: " + historicalDemand.length +
       " records from " + new Set(historicalDemand.map(row => row.date)).size + " dates. Sample data is synthetic.";
     renderDatasetSummary();
-    renderAdminDashboard();
   } catch (error) {
     historicalDemand = [];
     status.textContent = error.message;
     document.getElementById("dataset-summary").innerHTML =
       '<p class="error-message">Check that the data folder and CSV file are present, then reload with Live Server.</p>';
-    renderPredictionsAndAgent(getStoredList(ADMIN_KEYS.checkins), getStoredList(ADMIN_KEYS.requests));
   }
 }
 
@@ -488,7 +502,7 @@ async function updateRequest(requestId, action) {
     });
     const result = await response.json();
     if (!response.ok) throw new Error(result.error || "Could not update request.");
-    await renderAdminDashboard();
+    await renderAdminDashboard({ refreshAnalysis: false });
   } catch (error) {
     alert("Request update failed: " + error.message);
   }
@@ -507,7 +521,18 @@ document.getElementById("admin-request-list").addEventListener("click", event =>
   if (!button) return;
   updateRequest(button.dataset.id, button.dataset.action);
 });
-document.getElementById("refresh-analysis").addEventListener("click", loadDemandDataset);
+document.getElementById("refresh-analysis").addEventListener("click", async () => {
+  const button = document.getElementById("refresh-analysis");
+  button.disabled = true;
+  button.textContent = "Refreshing...";
+  try {
+    await loadDemandDataset();
+    await renderAdminDashboard();
+  } finally {
+    button.disabled = false;
+    button.textContent = "Refresh Dataset & Analysis";
+  }
+});
 document.getElementById("admin-logout").addEventListener("click", () => {
   localStorage.removeItem(ADMIN_KEYS.user);
   window.location.reload();
