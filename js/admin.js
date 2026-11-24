@@ -370,7 +370,7 @@ async function renderSchedulePlans(recommendations) {
           source: item.from,
           destination: item.to,
           time_slot: item.time,
-          predicted_passengers: item.forecast,
+          predicted_passengers: item.planningDemand ?? item.forecast,
           buses: item.busesRequired,
           departures
         })
