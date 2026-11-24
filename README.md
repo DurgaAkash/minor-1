@@ -11,7 +11,7 @@ A prototype for rural transportation planning and passenger-demand-based schedul
 5. Admin request review, approval and rejection
 6. Synthetic CSV historical passenger-demand dataset
 7. Random Forest Regression demand prediction using CSV and SQLite check-ins
-8. Rule-based bus-capacity and schedule recommendations
+8. Explainable demand decision agent combining Random Forest forecasts, pending requests, urgency ranking and capacity estimates
 9. Admin-approved schedules stored in SQLite and displayed on the Passenger Dashboard
 
 ### Project structure
@@ -52,6 +52,13 @@ minor-1/
 - Features include route, time slot, recent passenger counts, rolling average and day of week.
 - The included CSV is synthetic sample data, not official APSRTC or government data. SQLite records are user-entered prototype check-ins.
 - The small dataset is not sufficient for reliable real-world forecasts; add verified records covering more dates, routes, holidays and seasonal variation.
+
+### Demand prediction decision agent
+- Random Forest estimates next-day passenger demand for each route and time slot.
+- A separate decision layer combines the forecast with pending requests, estimates buses using an assumed capacity of 50, ranks urgency and explains each recommendation.
+- Check-ins are displayed as supporting evidence but are not added again because they already feed the ML training data.
+- Data confidence labels reflect the number of historical route records; they are simple indicators, not statistical confidence intervals.
+- The agent proposes actions only. An admin must approve or reject schedule proposals before passengers can see them.
 
 ### Schedule approval and publishing
 - Predicted demand is converted to an estimated bus count using an assumed capacity of 50 passengers per bus.
