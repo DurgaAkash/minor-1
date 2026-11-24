@@ -38,9 +38,13 @@ def initialize_database():
             expected_passengers INTEGER NOT NULL,
             reason TEXT,
             status TEXT DEFAULT 'PENDING',
+            admin_note TEXT DEFAULT '',
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     """)
+    columns = {row["name"] for row in conn.execute("PRAGMA table_info(requests)")}
+    if "admin_note" not in columns:
+        conn.execute("ALTER TABLE requests ADD COLUMN admin_note TEXT DEFAULT ''")
 
     conn.commit()
     conn.close()
@@ -137,6 +141,30 @@ def add_request():
         "message": "Bus request submitted successfully",
         "id": record_id
     }), 201
+
+
+@app.route("/api/requests/<int:request_id>", methods=["PATCH"])
+def update_request(request_id):
+    data = request.get_json(silent=True) or {}
+    status = str(data.get("status", "")).upper()
+    admin_note = str(data.get("admin_note", ""))
+
+    if status not in ("APPROVED", "REJECTED"):
+        return jsonify({"error": "Status must be APPROVED or REJECTED"}), 400
+
+    conn = get_db()
+    cursor = conn.execute(
+        "UPDATE requests SET status = ?, admin_note = ? WHERE id = ?",
+        (status, admin_note, request_id)
+    )
+    conn.commit()
+    if cursor.rowcount == 0:
+        conn.close()
+        return jsonify({"error": "Request not found"}), 404
+
+    row = conn.execute("SELECT * FROM requests WHERE id = ?", (request_id,)).fetchone()
+    conn.close()
+    return jsonify({"message": "Request status updated", "request": dict(row)})
 
 
 @app.route("/api/requests", methods=["GET"])
