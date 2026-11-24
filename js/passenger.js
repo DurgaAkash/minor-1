@@ -152,75 +152,90 @@ document.getElementById("route-form").addEventListener("submit", async function 
   }
 });
 
-document.getElementById("checkin-form").addEventListener("submit", function (event) {
+document.getElementById("checkin-form").addEventListener("submit", async function (event) {
   event.preventDefault();
   const checkin = {
-    id: "CI-" + Date.now(),
-    from: cleanText(document.getElementById("checkin-from").value),
-    to: cleanText(document.getElementById("checkin-to").value),
-    time: document.getElementById("checkin-time").value,
-    passengers: Number(document.getElementById("checkin-count").value),
-    createdAt: new Date().toISOString()
+    source: cleanText(document.getElementById("checkin-from").value),
+    destination: cleanText(document.getElementById("checkin-to").value),
+    travel_time: document.getElementById("checkin-time").value,
+    passengers: Number(document.getElementById("checkin-count").value)
   };
 
-  if (!checkin.from || !checkin.to || checkin.from.toLowerCase() === checkin.to.toLowerCase() || checkin.passengers < 1) {
+  if (!checkin.source || !checkin.destination || checkin.source.toLowerCase() === checkin.destination.toLowerCase() || checkin.passengers < 1) {
     showMessage("checkin-message", "Enter different locations and a valid passenger count.", true);
     return;
   }
 
-  const checkins = readList(STORAGE_KEYS.checkins);
-  checkins.push(checkin);
-  saveList(STORAGE_KEYS.checkins, checkins);
-  showMessage("checkin-message", "Check-in saved. Thank you for helping us measure rural travel demand.");
+  try {
+    const response = await fetch("http://127.0.0.1:5001/api/checkins", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(checkin)
+    });
+    const result = await response.json();
+    if (!response.ok) throw new Error(result.error || "Check-in could not be saved.");
+    showMessage("checkin-message", "Check-in saved to SQLite successfully. Record ID: " + result.id);
+  } catch (error) {
+    showMessage("checkin-message", "Could not save check-in. Start the SQLite backend and try again. " + error.message, true);
+    return;
+  }
   this.reset();
   document.getElementById("checkin-count").value = 1;
 });
 
-document.getElementById("request-form").addEventListener("submit", function (event) {
+document.getElementById("request-form").addEventListener("submit", async function (event) {
   event.preventDefault();
   const request = {
-    id: "SR-" + Date.now(),
-    from: cleanText(document.getElementById("request-from").value),
-    to: cleanText(document.getElementById("request-to").value),
-    time: document.getElementById("request-time").value,
-    passengers: Number(document.getElementById("request-count").value),
-    reason: cleanText(document.getElementById("request-reason").value),
-    status: "PENDING",
-    adminNote: "",
-    createdAt: new Date().toISOString()
+    source: cleanText(document.getElementById("request-from").value),
+    destination: cleanText(document.getElementById("request-to").value),
+    preferred_time: document.getElementById("request-time").value,
+    expected_passengers: Number(document.getElementById("request-count").value),
+    reason: cleanText(document.getElementById("request-reason").value)
   };
 
-  if (!request.from || !request.to || request.from.toLowerCase() === request.to.toLowerCase() || request.passengers < 1 || !request.reason) {
+  if (!request.source || !request.destination || request.source.toLowerCase() === request.destination.toLowerCase() || request.expected_passengers < 1 || !request.reason) {
     showMessage("request-message", "Please complete all fields with valid locations and passenger count.", true);
     return;
   }
 
-  const requests = readList(STORAGE_KEYS.requests);
-  requests.push(request);
-  saveList(STORAGE_KEYS.requests, requests);
-  showMessage("request-message", "Your request " + request.id + " has been saved for admin review.");
+  try {
+    const response = await fetch("http://127.0.0.1:5001/api/requests", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(request)
+    });
+    const result = await response.json();
+    if (!response.ok) throw new Error(result.error || "Request could not be submitted.");
+    showMessage("request-message", "Your bus request #" + result.id + " has been submitted for admin review.");
+  } catch (error) {
+    showMessage("request-message", "Could not submit request. Start the SQLite backend and try again. " + error.message, true);
+    return;
+  }
   this.reset();
   document.getElementById("request-count").value = 1;
   renderMyRequests();
 });
 
-function renderMyRequests() {
+async function renderMyRequests() {
   const container = document.getElementById("my-requests");
-  const requests = readList(STORAGE_KEYS.requests).slice().reverse();
-
-  if (!requests.length) {
-    container.innerHTML = '<p class="muted-text">No requests submitted yet.</p>';
-    return;
+  try {
+    const response = await fetch("http://127.0.0.1:5001/api/requests");
+    if (!response.ok) throw new Error("Request list could not be loaded.");
+    const requests = await response.json();
+    if (!requests.length) {
+      container.innerHTML = '<p class="muted-text">No requests submitted yet.</p>';
+      return;
+    }
+    container.innerHTML = requests.map(item => `
+      <article class="request-result">
+        <div class="request-top"><strong>Request #${item.id}</strong><span class="status-pill ${item.status === "APPROVED" ? "status-approved" : item.status === "REJECTED" ? "status-rejected" : "status-pending"}">${escapeHTML(item.status)}</span></div>
+        <p>${escapeHTML(item.source)} → ${escapeHTML(item.destination)}</p>
+        <p class="small-note">${escapeHTML(item.preferred_time)} · ${item.expected_passengers} passenger(s)</p>
+        ${item.admin_note ? `<p class="admin-note">Admin: ${escapeHTML(item.admin_note)}</p>` : ""}
+      </article>`).join("");
+  } catch (error) {
+    container.innerHTML = '<p class="error-message">Unable to load requests. Make sure the SQLite backend is running.</p>';
   }
-
-  container.innerHTML = requests.map(request => `
-    <article class="request-result">
-      <div class="request-top"><strong>${request.id}</strong><span class="status-pill ${request.status === "APPROVED" ? "status-approved" : request.status === "REJECTED" ? "status-rejected" : "status-pending"}">${request.status}</span></div>
-      <p>${escapeHTML(request.from)} → ${escapeHTML(request.to)}</p>
-      <p class="small-note">${escapeHTML(request.time)} · ${request.passengers} passenger(s)</p>
-      ${request.adminNote ? `<p class="admin-note">Admin: ${escapeHTML(request.adminNote)}</p>` : ""}
-    </article>
-  `).join("");
 }
 
 function escapeHTML(value) {
@@ -239,16 +254,10 @@ document.getElementById("route-date").value = new Date().toISOString().split("T"
 renderMyRequests();
 initializeRouteMap();
 
-// Show whether the optional Firebase cloud layer is configured.
-// Existing passenger actions remain on localStorage until Firebase Auth is integrated.
 const passengerCloudStatus = document.getElementById("cloud-status");
-if (passengerCloudStatus && window.SmartRouteCloud) {
-  passengerCloudStatus.textContent = window.SmartRouteCloud.status().message;
-}
-
-
-// Display Firebase setup status. Passenger records remain local until authentication is connected.
-const passengerCloudStatus = document.getElementById("cloud-status");
-if (passengerCloudStatus && window.SmartRouteCloud) {
-  passengerCloudStatus.textContent = window.SmartRouteCloud.status().message;
+if (passengerCloudStatus) {
+  fetch("http://127.0.0.1:5001/api/health")
+    .then(response => { if (!response.ok) throw new Error("Backend unavailable"); return response.json(); })
+    .then(() => passengerCloudStatus.textContent = "SQLite connected. Passenger check-ins and requests are saved in the local database.")
+    .catch(() => passengerCloudStatus.textContent = "SQLite backend is offline. Start python backend/app.py.");
 }
