@@ -313,43 +313,72 @@ function scheduleClock(total) {
   const hour = Math.floor(total / 60) % 24;
   return String(hour % 12 || 12).padStart(2, "0") + ":" + String(total % 60).padStart(2, "0") + " " + (hour >= 12 ? "PM" : "AM");
 }
-function renderSchedulePlans(recommendations) {
+async function renderSchedulePlans(recommendations) {
   const box = document.getElementById("schedule-plan-list");
   if (!box) return;
-  const previous = getStoredList(ADMIN_KEYS.schedules);
-  const plans = recommendations.map(item => {
-    const key = (item.from + "|" + item.to + "|" + item.time).toLowerCase();
-    const old = previous.find(plan => plan.key === key);
-    const start = scheduleSlotStart(item.time);
-    return { key, from:item.from, to:item.to, time:item.time, forecast:item.forecast, buses:item.busesRequired,
-      departures:Array.from({length:item.busesRequired},(_,i)=>scheduleClock(start+i*30)),
-      status:old ? old.status : "PENDING", adminNote:old ? old.adminNote || "" : "" };
-  });
-  localStorage.setItem(ADMIN_KEYS.schedules, JSON.stringify(plans));
-  box.innerHTML = plans.map(plan => {
-    const cls = plan.status === "APPROVED" ? "status-approved" : plan.status === "REJECTED" ? "status-rejected" : "status-pending";
-    return `<article class="schedule-card">
-      <div class="request-top"><strong>${safeText(plan.from)} → ${safeText(plan.to)}</strong><span class="status-pill ${cls}">${safeText(plan.status)}</span></div>
-      <p><strong>Time slot:</strong> ${safeText(plan.time)} · <strong>Predicted passengers:</strong> ${plan.forecast}</p>
-      <p><strong>Suggested buses:</strong> ${plan.buses} (assumed capacity ${BUS_CAPACITY} each)</p>
-      <p><strong>Proposed departures:</strong> ${plan.departures.map(safeText).join(" · ")}</p>
-      <p class="small-note">Illustrative 30-minute intervals only; not verified operator timetables.</p>
-      <label for="schedule-note-${safeText(plan.key)}">Admin decision note</label>
-      <textarea id="schedule-note-${safeText(plan.key)}" rows="2">${safeText(plan.adminNote)}</textarea>
-      ${plan.status === "PENDING" ? `<div class="admin-actions"><button class="button button-primary" data-schedule-action="approve" data-key="${safeText(plan.key)}" type="button">Approve Schedule</button><button class="button button-danger" data-schedule-action="reject" data-key="${safeText(plan.key)}" type="button">Reject</button></div>` : ""}
-    </article>`;
-  }).join("") || '<p class="muted-text">No schedule proposals available.</p>';
+  box.innerHTML = '<p class="muted-text">Saving schedule proposals to SQLite...</p>';
+
+  try {
+    for (const item of recommendations) {
+      const start = scheduleSlotStart(item.time);
+      const departures = Array.from(
+        { length: item.busesRequired },
+        (_, index) => scheduleClock(start + index * 30)
+      );
+      const response = await fetch("http://127.0.0.1:5001/api/schedules", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          source: item.from,
+          destination: item.to,
+          time_slot: item.time,
+          predicted_passengers: item.forecast,
+          buses: item.busesRequired,
+          departures
+        })
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || "Could not save schedule proposal.");
+    }
+
+    const response = await fetch("http://127.0.0.1:5001/api/schedules");
+    if (!response.ok) throw new Error("Could not load saved schedule proposals.");
+    const plans = await response.json();
+    localStorage.setItem(ADMIN_KEYS.schedules, JSON.stringify(plans));
+    box.innerHTML = plans.map(plan => {
+      const cls = plan.status === "APPROVED" ? "status-approved" : plan.status === "REJECTED" ? "status-rejected" : "status-pending";
+      return `<article class="schedule-card">
+        <div class="request-top"><strong>${safeText(plan.source)} → ${safeText(plan.destination)}</strong><span class="status-pill ${cls}">${safeText(plan.status)}</span></div>
+        <p><strong>Time slot:</strong> ${safeText(plan.time_slot)} · <strong>Predicted passengers:</strong> ${Number(plan.predicted_passengers)}</p>
+        <p><strong>Suggested buses:</strong> ${Number(plan.buses)} (assumed capacity ${BUS_CAPACITY} each)</p>
+        <p><strong>Proposed departures:</strong> ${(plan.departures || []).map(safeText).join(" · ")}</p>
+        <p class="small-note">Illustrative 30-minute intervals only; not verified operator timetables.</p>
+        <label for="schedule-note-${plan.id}">Admin decision note</label>
+        <textarea id="schedule-note-${plan.id}" rows="2">${safeText(plan.admin_note || "")}</textarea>
+        ${plan.status === "PENDING" ? `<div class="admin-actions"><button class="button button-primary" data-schedule-action="approve" data-id="${plan.id}" type="button">Approve & Publish</button><button class="button button-danger" data-schedule-action="reject" data-id="${plan.id}" type="button">Reject</button></div>` : ""}
+      </article>`;
+    }).join("") || '<p class="muted-text">No schedule proposals available.</p>';
+  } catch (error) {
+    box.innerHTML = '<p class="error-message">Schedule database error: ' + safeText(error.message) + '. Make sure the SQLite backend is running.</p>';
+  }
 }
-function updateScheduleStatus(key, action) {
-  const plans = getStoredList(ADMIN_KEYS.schedules);
-  const plan = plans.find(item => item.key === key);
-  if (!plan || plan.status !== "PENDING") return;
-  const note = document.getElementById("schedule-note-" + key);
-  plan.status = action === "approve" ? "APPROVED" : "REJECTED";
-  plan.adminNote = note ? note.value.trim() : "";
-  plan.reviewedAt = new Date().toISOString();
-  localStorage.setItem(ADMIN_KEYS.schedules, JSON.stringify(plans));
-  renderSchedulePlans(plans.map(plan => ({ ...plan, busesRequired: plan.buses })));
+
+async function updateScheduleStatus(scheduleId, action) {
+  const note = document.getElementById("schedule-note-" + scheduleId);
+  const status = action === "approve" ? "APPROVED" : "REJECTED";
+  try {
+    const response = await fetch("http://127.0.0.1:5001/api/schedules/" + encodeURIComponent(scheduleId), {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status, admin_note: note ? note.value.trim() : "" })
+    });
+    const result = await response.json();
+    if (!response.ok) throw new Error(result.error || "Could not update schedule.");
+    await renderSchedulePlans([]);
+    alert(status === "APPROVED" ? "Schedule approved and published to the Passenger Dashboard." : "Schedule proposal rejected.");
+  } catch (error) {
+    alert("Schedule update failed: " + error.message);
+  }
 }
 
 function renderDemandAnalysis(checkins, requests) {
@@ -471,7 +500,7 @@ document.getElementById("admin-password").addEventListener("keydown", event => {
 });
 document.getElementById("schedule-plan-list").addEventListener("click", event => {
   const button = event.target.closest("button[data-schedule-action]");
-  if (button) updateScheduleStatus(button.dataset.key, button.dataset.scheduleAction);
+  if (button) updateScheduleStatus(button.dataset.id, button.dataset.scheduleAction);
 });
 document.getElementById("admin-request-list").addEventListener("click", event => {
   const button = event.target.closest("button[data-action]");
