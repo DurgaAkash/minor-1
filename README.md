@@ -1,17 +1,18 @@
 # SmartRoute AI
 ## AI-Based Smart Rural Transportation Planning and Optimization System
 
-A beginner-friendly frontend prototype for rural transportation planning.
+A prototype for rural transportation planning and passenger-demand-based schedule recommendations.
 
 ### Current modules
 1. Landing page
-2. Passenger login with keyword-based travel intent detection (demo only)
-3. India-wide road route search using Leaflet, OpenStreetMap, India-restricted Nominatim geocoding and OSRM
-4. Passenger check-ins and service requests
+2. Passenger sign-in (demo only)
+3. India-wide road route search using Leaflet, OpenStreetMap, Nominatim and OSRM
+4. Passenger check-ins and service requests stored in SQLite
 5. Admin request review, approval and rejection
-6. CSV-based historical rural passenger demand dataset
-7. Next-day demand estimates using a three-record moving average
-8. Random Forest Regression demand prediction through a Python API\n9. Rule-based recommendation assistant for bus capacity and schedule planning
+6. Synthetic CSV historical passenger-demand dataset
+7. Random Forest Regression demand prediction using CSV and SQLite check-ins
+8. Rule-based bus-capacity and schedule recommendations
+9. Admin-approved schedules stored in SQLite and displayed on the Passenger Dashboard
 
 ### Project structure
 ```
@@ -20,83 +21,49 @@ minor-1/
 ├── login.html
 ├── passenger.html
 ├── admin.html
-├── data/
-│   └── rural_transport_demand.csv
-├── css/
-│   └── style.css
-├── js/
-│   ├── main.js
-│   ├── login.js
-│   ├── passenger.js
-│   └── admin.js
-└── assets/
-    └── README.md
+├── data/rural_transport_demand.csv
+├── backend/app.py
+├── ml-service/app.py
+├── ml-service/requirements.txt
+├── css/style.css
+└── js/
+    ├── main.js
+    ├── login.js
+    ├── passenger.js
+    └── admin.js
 ```
 
 ### Run locally
-1. Clone or pull the repository.
-2. Open the project folder in VS Code.
-3. Start VS Code Live Server from `index.html`.
-4. Open `admin.html` and sign in with the demo admin credentials shown on the page.
-5. The admin page fetches `data/rural_transport_demand.csv` and displays demand forecasts and recommendations.\n6. To enable Random Forest predictions, open a second VS Code terminal and run the Python service commands below.
+1. Pull the latest repository changes and open the project folder in VS Code.
+2. Start the SQLite backend: `python backend/app.py`.
+3. Start the ML service in another terminal: `python ml-service/app.py`.
+4. Open `index.html` using VS Code Live Server.
+5. Passenger demo login: `passenger` / `travel123`.
+6. Admin demo login: `admin` / `admin123`.
 
-### India-wide route search\n- Passengers can enter starting points and destinations anywhere in India; geocoding is restricted to India.\n- OpenStreetMap/Nominatim finds the locations and OSRM calculates an estimated driving route, distance and duration.\n- This does not provide verified bus operators, fares, schedules, seat availability or live GPS tracking.\n- Public map services may apply usage limits; production deployment should follow provider policies and consider a dedicated routing/geocoding service.\n\n### Dataset notes
-The included CSV is **synthetic sample data created for prototype testing**. It is not official APSRTC or government passenger data. Replace it with verified passenger counts before using the forecasts for real transport planning.
+### India-wide road route search
+- Enter starting points and destinations anywhere in India.
+- Nominatim geocodes locations and OSRM calculates an estimated road route, distance and driving duration.
+- This does not provide verified bus operators, fares, schedules, seat availability or live GPS tracking.
+- Public map services may apply usage limits; follow their policies for prototype use and arrange a suitable provider for production.
 
-Columns: `Date, Source, Destination, Time, Passengers`.
+### Demand prediction
+- The Python service trains a Random Forest Regression model from the project CSV plus daily totals from SQLite passenger check-ins.
+- Features include route, time slot, recent passenger counts, rolling average and day of week.
+- The included CSV is synthetic sample data, not official APSRTC or government data. SQLite records are user-entered prototype check-ins.
+- The small dataset is not sufficient for reliable real-world forecasts; add verified records covering more dates, routes, holidays and seasonal variation.
 
-### Forecast and recommendation logic
-- Forecast: average of the latest three daily records for each source, destination and time slot.
-- Bus capacity assumption: 50 passengers per bus (editable in `js/admin.js`).
-- Recommendation assistant: compares the forecast with assumed capacity and suggests whether to monitor demand or consider an additional bus/departure.
-- The admin makes the final decision; the system does not automatically change or publish schedules.
+### Schedule approval and publishing
+- Predicted demand is converted to an estimated bus count using an assumed capacity of 50 passengers per bus.
+- Departure proposals use illustrative 30-minute intervals starting at 7:00 AM, 12:00 PM or 5:00 PM according to the time slot.
+- Admin can approve or reject proposals and add a note.
+- Approved schedules are saved in SQLite and shown under Published Bus Schedules on the Passenger Dashboard.
+- These are prototype proposals, not confirmed operator timetables. Confirm actual service details with the bus operator before travel.
 
 ### Important prototype limitations
-- CSV forecasting is a simple moving-average baseline, not a trained machine-learning model.
-- The recommendation assistant is rule-based; it is not an autonomous or LLM-powered agent.
-- Passenger check-ins and requests use browser localStorage, so they are not shared between different devices.
-- Demo login credentials are not secure authentication.
-- Map routing is not live bus GPS tracking.
-- Use Live Server or another local HTTP server; opening HTML directly as a file can prevent CSV fetch from working.
-
-### Random Forest ML service
-
-The admin dashboard first tries to use the Python prediction API. If the API is not running, it automatically falls back to the existing three-record moving-average forecast.
-
-**Windows setup (run from the project root in a second VS Code terminal):**
-
-```powershell
-py -m venv .venv
-.venv\\Scripts\\activate
-pip install -r ml-service/requirements.txt
-python ml-service/app.py
-```
-
-Keep this terminal running. The API starts at `http://127.0.0.1:5000`. Open or refresh `admin.html` using Live Server in your browser. The dashboard requests `/api/predict` from the local Python service.
-
-**Model approach:**
-- Algorithm: `RandomForestRegressor` from Scikit-learn.
-- Features: route, time slot, previous day's passengers, previous two days' passengers, previous three-day average, and day of week.
-- Evaluation: temporal holdout (latest supervised record from each route/time group) with Mean Absolute Error (MAE).
-- The model is retrained from the CSV when a prediction request is made.
-- If Python dependencies or the service are unavailable, the dashboard continues using the moving-average fallback.
-
-**Limitations:** the included CSV has only a small number of synthetic observations. Random Forest output and MAE are demonstration results, not reliable real-world transport forecasts. Add a larger, verified dataset covering more dates, routes, holidays and seasonal variation before evaluating the model for actual planning. Bus capacity recommendations remain advisory and require admin approval.
-
-
-### Schedule optimization
-- Converts predicted passenger demand into a suggested bus count using `ceil(predicted_passengers / 50)`.
-- Illustrative departures start at 7:00 AM (Morning), 12:00 PM (Afternoon), or 5:00 PM (Evening), spaced 30 minutes apart when multiple buses are suggested.
-- Admin can approve or reject each proposal and add a decision note.
-- Decisions are stored in browser localStorage and are limited to that browser profile.
-- These proposals are not live operator timetables. Real planning must account for travel duration, vehicle and driver availability, depot constraints and verified passenger demand.
-
-
-### Firebase cloud database foundation
-
-- Added a Firebase Web App configuration template at `js/firebase-config.js`.
-- Added a Firestore adapter at `js/cloud-store.js` with create, list, real-time subscribe and update helpers.
-- Added restrictive Firestore rules in `firebase/firestore.rules`. Users must be authenticated; admin access requires a trusted Firebase custom claim.
-- Added setup instructions in `firebase/README.md`.
-- Passenger and admin pages load the Firebase SDK and display the cloud setup status.
-- **Important:** current demo login and data forms still use localStorage. Cloud synchronization is not active until Firebase configuration and secure Firebase Authentication are completed. Do not use public read/write Firestore rules.
+- Passenger and admin demo credentials are not secure authentication.
+- SQLite is stored on the computer running the backend; it is not cloud-hosted.
+- Passenger request listing is currently a prototype-wide list and is not filtered by authenticated passenger identity.
+- Bus capacity is an assumption; real planning must account for travel duration, vehicle/driver availability, depot constraints and verified demand.
+- The map displays road routing, not live bus GPS tracking.
+- Use Live Server or another local HTTP server rather than opening HTML files directly.
