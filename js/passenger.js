@@ -280,6 +280,14 @@ renderMyRequests();
 renderPublishedSchedules();
 initializeRouteMap();
 
+// Keep the passenger portal synchronized with admin decisions.
+// This refreshes request statuses and approved schedules without requiring
+// the passenger to close and reopen the dashboard.
+setInterval(() => {
+  renderMyRequests();
+  renderPublishedSchedules();
+}, 15000);
+
 const passengerCloudStatus = document.getElementById("cloud-status");
 if (passengerCloudStatus) {
   fetch("http://127.0.0.1:5001/api/health")
