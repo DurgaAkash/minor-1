@@ -332,7 +332,7 @@ document.getElementById("request-form").addEventListener("submit", async functio
     });
     const result = await response.json();
     if (!response.ok) throw new Error(result.error || "Request could not be submitted.");
-    showMessage("request-message", "Your bus request #" + result.id + " has been submitted for admin review.");
+    showMessage("request-message", "Your bus request #" + result.id + " was saved and sent for automatic AI demand analysis. Any proposed bus schedule will be published only after admin approval.");
   } catch (error) {
     showMessage("request-message", "Could not submit request. Start the SQLite backend and try again. " + error.message, true);
     return;
@@ -396,7 +396,7 @@ async function renderMyRequests() {
     }
     container.innerHTML = requests.map(item => `
       <article class="request-result">
-        <div class="request-top"><strong>Request #${item.id}</strong><span class="status-pill ${item.status === "APPROVED" ? "status-approved" : item.status === "REJECTED" ? "status-rejected" : "status-pending"}">${escapeHTML(item.status)}</span></div>
+        <div class="request-top"><strong>Request #${item.id}</strong><span class="status-pill ${item.status === "APPROVED" ? "status-approved" : item.status === "REJECTED" ? "status-rejected" : "status-available"}">${escapeHTML(item.status === "PENDING" ? "AI ANALYSIS" : item.status)}</span></div>
         <p>${escapeHTML(item.source)} → ${escapeHTML(item.destination)}</p>
         <p class="small-note">${escapeHTML(item.preferred_time)} · ${item.expected_passengers} passenger(s)</p>
         ${item.admin_note ? `<p class="admin-note">Admin: ${escapeHTML(item.admin_note)}</p>` : ""}
