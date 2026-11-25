@@ -41,7 +41,7 @@
       </div>
 
       <section class="dashboard-card admin-panel-card">
-        <div class="card-heading"><span>📊</span><div><h2 data-i18n="demandCharts">Passenger Demand Charts</h2><p data-i18n="featuresDescription">Visual summary of historical CSV demand and browser check-ins.</p></div></div>
+        <div class="card-heading"><span>📊</span><div><h2 data-i18n="demandCharts">Passenger Demand Charts</h2><p>Visual summary of historical CSV demand and browser check-ins.</p></div></div>
         <div class="chart-grid">
           <div class="chart-panel"><h3 data-i18n="passengersByRoute">Passengers by Route</h3><canvas id="route-demand-chart" aria-label="Bar chart showing passengers by route"></canvas></div>
           <div class="chart-panel"><h3 data-i18n="demandByTime">Demand by Time Slot</h3><canvas id="time-demand-chart" aria-label="Doughnut chart showing passengers by time slot"></canvas></div>
@@ -55,13 +55,13 @@
       </section>
 
       <section class="dashboard-card admin-panel-card">
-        <div class="card-heading"><span>📁</span><div><h2 data-i18n="historicalDataset">Historical Demand Dataset</h2><p data-i18n="purposeTitle">Passenger counts loaded from the project CSV dataset.</p></div></div>
+        <div class="card-heading"><span>📁</span><div><h2 data-i18n="historicalDataset">Historical Demand Dataset</h2><p>Passenger counts loaded from the project CSV dataset.</p></div></div>
         <div id="dataset-status" class="small-note" aria-live="polite">Loading CSV dataset...</div>
         <div id="dataset-summary" class="result-area"></div>
       </section>
 
       <section class="dashboard-card admin-panel-card">
-        <div class="card-heading"><span>📈</span><div><h2 data-i18n="mlPrediction">Machine Learning Demand Prediction</h2><p data-i18n="agentDescription">Random Forest Regression estimates next-day passenger demand from historical route and time-slot patterns.</p></div></div>
+        <div class="card-heading"><span>📈</span><div><h2 data-i18n="mlPrediction">Machine Learning Demand Prediction</h2><p>Random Forest Regression estimates next-day passenger demand from historical route and time-slot patterns.</p></div></div>
         <p id="ml-model-status" class="small-note" aria-live="polite">Trying to connect to the Python ML service...</p>
         <div id="demand-predictions" class="result-area"></div>
       </section>
@@ -77,7 +77,7 @@
         <div id="schedule-plan-list" class="result-area"></div>
       </section>
       <section class="dashboard-card admin-panel-card">
-        <div class="card-heading"><span>📊</span><div><h2 data-i18n="liveActivity">Live Passenger Activity</h2><p data-i18n="passengerIntro">Additional demand reported through this browser's passenger check-ins and pending requests.</p></div></div>
+        <div class="card-heading"><span>📊</span><div><h2 data-i18n="liveActivity">Live Passenger Activity</h2><p>Additional demand reported through this browser's passenger check-ins and pending requests.</p></div></div>
         <div id="demand-analysis" class="result-area"></div>
       </section>
       <p class="demo-warning">Prototype limitation: passenger records are stored in a local SQLite database on the backend computer. Admin login is demo-only and is not secure authentication; do not expose this backend publicly.</p>
