@@ -8,6 +8,7 @@ let historicalDemand = [];
 let dashboardInitialization = null;
 let routeDemandChart = null;
 let timeDemandChart = null;
+let latestDashboardCheckins = [];
 
 function getStoredList(key) {
   try {
@@ -95,6 +96,7 @@ async function renderAdminDashboard(options = {}) {
   document.getElementById("total-checkins").textContent = checkins.length;
   renderRequests(requests);
   renderDemandAnalysis(checkins, requests);
+  latestDashboardCheckins = checkins;
   renderDemandCharts(checkins);
 
   // Re-run the ML forecast and create schedule proposals only for initial
@@ -460,12 +462,15 @@ function renderDemandCharts(checkins) {
   const timeCanvas = document.getElementById("time-demand-chart");
   if (!routeCanvas || !timeCanvas) return;
 
+  const language = window.smartRouteLanguage || "en";
+  const chartText = (window.smartRouteChartText && window.smartRouteChartText[language]) || window.smartRouteChartText?.en || {};
+
   if (!window.Chart) {
-    status.textContent = "Chart library could not load. Check your internet connection and refresh.";
+    status.textContent = chartText.chartUnavailable || "Chart library could not load. Check your internet connection and refresh.";
     return;
   }
   if (!historicalDemand.length) {
-    status.textContent = "Load the CSV dataset to display historical demand charts.";
+    status.textContent = chartText.noDataset || "Load the CSV dataset to display historical demand charts.";
     return;
   }
 
@@ -488,13 +493,13 @@ function renderDemandCharts(checkins) {
     type: "bar",
     data: {
       labels: topRoutes.map(item => item[0]),
-      datasets: [{ label: "Recorded passenger trips", data: topRoutes.map(item => item[1]), backgroundColor: "#16845b", borderRadius: 6 }]
+      datasets: [{ label: chartText.recordedTrips || "Recorded passenger trips", data: topRoutes.map(item => item[1]), backgroundColor: "#16845b", borderRadius: 6 }]
     },
     options: {
       responsive: true,
       maintainAspectRatio: false,
-      plugins: { legend: { display: false }, tooltip: { callbacks: { label: context => context.parsed.y + " passengers" } } },
-      scales: { y: { beginAtZero: true, title: { display: true, text: "Passengers" } }, x: { ticks: { maxRotation: 35, minRotation: 0 } } }
+      plugins: { legend: { display: false }, tooltip: { callbacks: { label: context => context.parsed.y + " " + (chartText.passengers || "passengers") } } },
+      scales: { y: { beginAtZero: true, title: { display: true, text: chartText.passengers || "Passengers" } }, x: { ticks: { maxRotation: 35, minRotation: 0 } } }
     }
   });
 
@@ -502,17 +507,17 @@ function renderDemandCharts(checkins) {
     type: "doughnut",
     data: {
       labels: timeSlots.map(item => item[0]),
-      datasets: [{ label: "Passenger trips", data: timeSlots.map(item => item[1]), backgroundColor: ["#16845b", "#1f5f91", "#e6a23c", "#8b70b5"] }]
+      datasets: [{ label: chartText.passengerTrips || "Passenger trips", data: timeSlots.map(item => item[1]), backgroundColor: ["#16845b", "#1f5f91", "#e6a23c", "#8b70b5"] }]
     },
     options: {
       responsive: true,
       maintainAspectRatio: false,
-      plugins: { legend: { position: "bottom" }, tooltip: { callbacks: { label: context => context.label + ": " + context.parsed + " passengers" } } }
+      plugins: { legend: { position: "bottom" }, tooltip: { callbacks: { label: context => context.label + ": " + context.parsed + " " + (chartText.passengers || "passengers") } } }
     }
   });
 
   const liveCount = checkins.reduce((sum, item) => sum + (Number(item.passengers) || 0), 0);
-  status.textContent = "Historical charts are based on " + historicalDemand.length + " synthetic CSV records. Current browser check-ins: " + liveCount + " passengers. The two sources are kept separate to avoid double counting.";
+  status.textContent = (chartText.historicalPrefix || "Historical charts are based on") + " " + historicalDemand.length + " synthetic CSV records. " + (chartText.currentCheckins || "Current browser check-ins:") + " " + liveCount + " " + (chartText.passengers || "passengers") + ". The two sources are kept separate to avoid double counting.";
 }
 
 async function updateRequest(requestId, action) {
@@ -531,6 +536,8 @@ async function updateRequest(requestId, action) {
     alert("Request update failed: " + error.message);
   }
 }
+
+document.addEventListener("smartroute:languagechange", () => renderDemandCharts(latestDashboardCheckins));
 
 document.getElementById("admin-login-button").addEventListener("click", adminLogin);
 document.getElementById("admin-password").addEventListener("keydown", event => {
