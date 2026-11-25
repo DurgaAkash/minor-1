@@ -41,6 +41,7 @@ const demoRoutes = [
 // Interactive map: Leaflet + OpenStreetMap, with Nominatim geocoding and OSRM routing.
 let routeMap;
 let routeLayer;
+let activeScheduleRoute = null;
 let routeMarkers = [];
 
 function initializeRouteMap() {
@@ -121,6 +122,8 @@ document.getElementById("route-form").addEventListener("submit", async function 
 
   try {
     const route = await showRouteOnMap(from, to);
+    activeScheduleRoute = { from, to };
+    renderPublishedSchedules();
     const sample = demoRoutes.find(item =>
       item.from === from.toLowerCase() && item.to === to.toLowerCase()
     );
@@ -138,6 +141,8 @@ document.getElementById("route-form").addEventListener("submit", async function 
     document.getElementById("request-from").value = from;
     document.getElementById("request-to").value = to;
   } catch (error) {
+    activeScheduleRoute = { from, to };
+    renderPublishedSchedules();
     results.innerHTML = `
       <article class="route-result">
         <span class="status-pill status-pending">Route lookup unavailable</span>
@@ -223,11 +228,28 @@ async function renderPublishedSchedules() {
     const response = await fetch("http://127.0.0.1:5001/api/schedules?published_only=true");
     if (!response.ok) throw new Error("Published schedules could not be loaded.");
     const schedules = await response.json();
-    if (!schedules.length) {
-      container.innerHTML = '<p class="muted-text">No approved bus schedules have been published yet.</p>';
+    const matchingSchedules = activeScheduleRoute
+      ? schedules.filter(item =>
+          String(item.source).trim().toLowerCase() === activeScheduleRoute.from.trim().toLowerCase() &&
+          String(item.destination).trim().toLowerCase() === activeScheduleRoute.to.trim().toLowerCase()
+        )
+      : schedules;
+
+    if (!matchingSchedules.length) {
+      container.innerHTML = activeScheduleRoute
+        ? '<p class="muted-text">No admin-approved schedule matches ' +
+          escapeHTML(activeScheduleRoute.from) + ' → ' + escapeHTML(activeScheduleRoute.to) +
+          ' yet. You can submit a bus service request for this route.</p>'
+        : '<p class="muted-text">No approved bus schedules have been published yet.</p>';
       return;
     }
-    container.innerHTML = schedules.map(item => `
+    if (activeScheduleRoute) {
+      container.innerHTML = '<p class="small-note">Showing approved schedules for ' +
+        escapeHTML(activeScheduleRoute.from) + ' → ' + escapeHTML(activeScheduleRoute.to) + '.</p>';
+    } else {
+      container.innerHTML = "";
+    }
+    container.innerHTML += matchingSchedules.map(item => `
       <article class="request-result">
         <div class="request-top"><strong>${escapeHTML(item.source)} → ${escapeHTML(item.destination)}</strong><span class="status-pill status-approved">PUBLISHED</span></div>
         <p><strong>Time slot:</strong> ${escapeHTML(item.time_slot)}</p>
