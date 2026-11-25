@@ -16,7 +16,7 @@
     <div id="admin-login" class="login-card">
       <div class="assistant-icon">🔐</div>
       <h3 data-i18n="adminSignIn">Admin Sign In</h3>
-      <p class="muted-text">Sign in to review passenger requests and demand.</p>
+      <p class="muted-text" data-i18n="adminDescription">Sign in to review passenger requests and demand.</p>
       <label for="admin-username" data-i18n="username">Username</label>
       <input id="admin-username" autocomplete="username" placeholder="Admin username" data-i18n-placeholder="username">
       <label for="admin-password" data-i18n="password">Password</label>
@@ -29,7 +29,7 @@
     <div id="admin-dashboard" hidden>
       <p id="cloud-status" class="small-note" aria-live="polite">Checking SQLite database connection...</p>
       <div class="dashboard-welcome">
-        <div><span class="eyebrow" data-i18n="administration">ADMINISTRATION</span><h1 data-i18n="adminDashboard">Transport Control Dashboard</h1><p>Review passenger demand and decide which service requests should be approved.</p></div>
+        <div><span class="eyebrow" data-i18n="administration">ADMINISTRATION</span><h1 data-i18n="adminDashboard">Transport Control Dashboard</h1><p data-i18n="adminDescription">Review passenger demand and decide which service requests should be approved.</p></div>
         <div class="welcome-icon">📊</div>
       </div>
 
@@ -41,7 +41,7 @@
       </div>
 
       <section class="dashboard-card admin-panel-card">
-        <div class="card-heading"><span>📊</span><div><h2 data-i18n="demandCharts">Passenger Demand Charts</h2><p>Visual summary of historical CSV demand and browser check-ins.</p></div></div>
+        <div class="card-heading"><span>📊</span><div><h2 data-i18n="demandCharts">Passenger Demand Charts</h2><p data-i18n="featuresDescription">Visual summary of historical CSV demand and browser check-ins.</p></div></div>
         <div class="chart-grid">
           <div class="chart-panel"><h3 data-i18n="passengersByRoute">Passengers by Route</h3><canvas id="route-demand-chart" aria-label="Bar chart showing passengers by route"></canvas></div>
           <div class="chart-panel"><h3 data-i18n="demandByTime">Demand by Time Slot</h3><canvas id="time-demand-chart" aria-label="Doughnut chart showing passengers by time slot"></canvas></div>
@@ -50,34 +50,34 @@
       </section>
 
       <section class="dashboard-card admin-panel-card">
-        <div class="card-heading"><span>📨</span><div><h2 data-i18n="passengerRequests">Passenger Service Requests</h2><p>Approve or reject requests after reviewing the route and expected passenger count.</p></div></div>
+        <div class="card-heading"><span>📨</span><div><h2 data-i18n="passengerRequests">Passenger Service Requests</h2><p data-i18n="requestDescription">Approve or reject requests after reviewing the route and expected passenger count.</p></div></div>
         <div id="admin-request-list" class="result-area"></div>
       </section>
 
       <section class="dashboard-card admin-panel-card">
-        <div class="card-heading"><span>📁</span><div><h2 data-i18n="historicalDataset">Historical Demand Dataset</h2><p>Passenger counts loaded from the project CSV dataset.</p></div></div>
+        <div class="card-heading"><span>📁</span><div><h2 data-i18n="historicalDataset">Historical Demand Dataset</h2><p data-i18n="purposeTitle">Passenger counts loaded from the project CSV dataset.</p></div></div>
         <div id="dataset-status" class="small-note" aria-live="polite">Loading CSV dataset...</div>
         <div id="dataset-summary" class="result-area"></div>
       </section>
 
       <section class="dashboard-card admin-panel-card">
-        <div class="card-heading"><span>📈</span><div><h2 data-i18n="mlPrediction">Machine Learning Demand Prediction</h2><p>Random Forest Regression estimates next-day passenger demand from historical route and time-slot patterns.</p></div></div>
+        <div class="card-heading"><span>📈</span><div><h2 data-i18n="mlPrediction">Machine Learning Demand Prediction</h2><p data-i18n="agentDescription">Random Forest Regression estimates next-day passenger demand from historical route and time-slot patterns.</p></div></div>
         <p id="ml-model-status" class="small-note" aria-live="polite">Trying to connect to the Python ML service...</p>
         <div id="demand-predictions" class="result-area"></div>
       </section>
 
       <section class="dashboard-card admin-panel-card">
-        <div class="card-heading"><span>🤖</span><div><h2 data-i18n="aiAgent">SmartRoute AI Agent Recommendations</h2><p>Analyzes predicted demand and suggests bus capacity and schedule changes. Admin makes the final decision.</p></div></div>
+        <div class="card-heading"><span>🤖</span><div><h2 data-i18n="aiAgent">SmartRoute AI Agent Recommendations</h2><p data-i18n="adminDescription">Analyzes predicted demand and suggests bus capacity and schedule changes. Admin makes the final decision.</p></div></div>
         <div id="agent-recommendations" class="result-area"></div>
         <button class="button button-secondary" id="refresh-analysis" type="button" data-i18n="refreshAnalysis">Refresh Dataset & Analysis</button>
       </section>
 
       <section class="dashboard-card admin-panel-card">
-        <div class="card-heading"><span>🗓️</span><div><h2 data-i18n="scheduleOptimization">Smart Schedule Optimization</h2><p>Proposed bus allocations and departure times based on predicted demand. Admin approval is required.</p></div></div>
+        <div class="card-heading"><span>🗓️</span><div><h2 data-i18n="scheduleOptimization">Smart Schedule Optimization</h2><p data-i18n="adminDescription">Proposed bus allocations and departure times based on predicted demand. Admin approval is required.</p></div></div>
         <div id="schedule-plan-list" class="result-area"></div>
       </section>
       <section class="dashboard-card admin-panel-card">
-        <div class="card-heading"><span>📊</span><div><h2 data-i18n="liveActivity">Live Passenger Activity</h2><p>Additional demand reported through this browser's passenger check-ins and pending requests.</p></div></div>
+        <div class="card-heading"><span>📊</span><div><h2 data-i18n="liveActivity">Live Passenger Activity</h2><p data-i18n="passengerIntro">Additional demand reported through this browser's passenger check-ins and pending requests.</p></div></div>
         <div id="demand-analysis" class="result-area"></div>
       </section>
       <p class="demo-warning">Prototype limitation: passenger records are stored in a local SQLite database on the backend computer. Admin login is demo-only and is not secure authentication; do not expose this backend publicly.</p>
