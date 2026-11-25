@@ -68,6 +68,127 @@ async function geocodePlace(place) {
   };
 }
 
+// Live location suggestions for the Route Finder.
+// Search starts after two characters, is debounced/throttled, and is restricted to India.
+const autocompleteTimers = new Map();
+const autocompleteControllers = new Map();
+const autocompleteLastRequest = new Map();
+const autocompleteCache = new Map();
+
+function closeLocationSuggestions(input) {
+  const list = document.getElementById(input.id + "-suggestions");
+  if (list) {
+    list.hidden = true;
+    list.replaceChildren();
+  }
+  input.setAttribute("aria-expanded", "false");
+}
+
+function attachLocationAutocomplete(inputId) {
+  const input = document.getElementById(inputId);
+  const list = document.getElementById(inputId + "-suggestions");
+  if (!input || !list) return;
+
+  input.setAttribute("aria-expanded", "false");
+
+  input.addEventListener("input", () => {
+    const query = cleanText(input.value);
+    clearTimeout(autocompleteTimers.get(inputId));
+    const previousController = autocompleteControllers.get(inputId);
+    if (previousController) previousController.abort();
+
+    if (query.length < 2) {
+      closeLocationSuggestions(input);
+      return;
+    }
+
+    list.replaceChildren();
+    const loading = document.createElement("div");
+    loading.className = "autocomplete-message";
+    loading.textContent = "Finding locations in India...";
+    list.replaceChildren(loading);
+    list.hidden = false;
+    input.setAttribute("aria-expanded", "true");
+
+    autocompleteTimers.set(inputId, setTimeout(async () => {
+      const cacheKey = query.toLocaleLowerCase();
+      try {
+        let places = autocompleteCache.get(cacheKey);
+        if (!places) {
+          const lastRequest = autocompleteLastRequest.get(inputId) || 0;
+          const wait = Math.max(0, 1100 - (Date.now() - lastRequest));
+          if (wait) await new Promise(resolve => setTimeout(resolve, wait));
+          if (cleanText(input.value).toLocaleLowerCase() !== cacheKey) return;
+
+          const controller = new AbortController();
+          autocompleteControllers.set(inputId, controller);
+          autocompleteLastRequest.set(inputId, Date.now());
+          const url = "https://nominatim.openstreetmap.org/search?format=jsonv2&addressdetails=1&limit=5&countrycodes=in&q=" + encodeURIComponent(query);
+          const response = await fetch(url, {
+            headers: { "Accept": "application/json" },
+            signal: controller.signal
+          });
+          if (!response.ok) throw new Error("Location suggestions are temporarily unavailable.");
+          places = await response.json();
+          autocompleteCache.set(cacheKey, places);
+        }
+
+        if (cleanText(input.value).toLocaleLowerCase() !== cacheKey) return;
+        list.replaceChildren();
+        if (!places.length) {
+          const empty = document.createElement("div");
+          empty.className = "autocomplete-message";
+          empty.textContent = "No matching Indian locations. Try adding a district or state.";
+          list.appendChild(empty);
+          return;
+        }
+
+        places.forEach(place => {
+          const option = document.createElement("button");
+          option.type = "button";
+          option.className = "autocomplete-option";
+          option.setAttribute("role", "option");
+          option.textContent = place.display_name;
+          option.addEventListener("click", () => {
+            input.value = place.display_name;
+            closeLocationSuggestions(input);
+            input.dispatchEvent(new Event("change", { bubbles: true }));
+          });
+          list.appendChild(option);
+        });
+      } catch (error) {
+        if (error.name === "AbortError") return;
+        list.replaceChildren();
+        const message = document.createElement("div");
+        message.className = "autocomplete-message";
+        message.textContent = "Suggestions unavailable. You can still type the full location.";
+        list.appendChild(message);
+      }
+    }, 550));
+  });
+
+  input.addEventListener("keydown", event => {
+    if (event.key === "Escape") {
+      closeLocationSuggestions(input);
+      return;
+    }
+    if (event.key === "ArrowDown" && !list.hidden) {
+      const firstOption = list.querySelector(".autocomplete-option");
+      if (firstOption) {
+        event.preventDefault();
+        firstOption.focus();
+      }
+    }
+  });
+
+  input.addEventListener("blur", () => {
+    setTimeout(() => closeLocationSuggestions(input), 160);
+  });
+}
+
+attachLocationAutocomplete("route-from");
+attachLocationAutocomplete("route-to");
+
 async function showRouteOnMap(from, to) {
   const message = document.getElementById("map-message");
   message.textContent = "Finding both locations and calculating a road route...";
