@@ -158,3 +158,10 @@ a { color: inherit; text-decoration: none; }
 .schedule-card p { margin-top: 7px; font-size: .9rem; }
 .schedule-card label { display: block; margin-top: 12px; font-size: .88rem; font-weight: 700; }
 .schedule-card textarea { width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 8px; font: inherit; }
+
+
+/* Home navigation language selector */
+.language-picker { display: inline-flex; align-items: center; gap: 7px; color: #526477; font-size: .88rem; font-weight: 700; }
+.language-picker select { max-width: 125px; padding: 8px 10px; border: 1px solid var(--border); border-radius: 8px; color: var(--navy); background: white; font: inherit; cursor: pointer; }
+.language-picker select:focus { outline: 2px solid #b8e6d0; border-color: var(--green); }
+@media (max-width: 600px) { .language-picker { justify-content: center; } }
