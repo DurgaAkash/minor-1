@@ -9,7 +9,7 @@
 <body>
   <header class="site-header">
     <a class="brand" href="index.html">🚌 SmartRoute AI</a>
-    <nav class="main-nav"><a href="index.html" data-i18n="navHome">Home</a><a href="passenger.html" data-i18n="passengerPortal">Passenger</a><label class="language-picker"><span data-i18n="languageLabel">Language</span><select id="language-select" aria-label="Select language"><option value="en">English</option><option value="ta">தமிழ்</option><option value="te">తెలుగు</option><option value="hi">हिन्दी</option><option value="bn">বাংলা</option><option value="mr">मराठी</option><option value="gu">ગુજરાતી</option><option value="kn">ಕನ್ನಡ</option><option value="ml">മലയാളം</option><option value="pa">ਪੰਜਾਬੀ</option><option value="or">ଓଡ଼ିଆ</option><option value="as">অসমীয়া</option><option value="ur">اردو</option></select></label><button class="button button-secondary" id="admin-logout" type="button" hidden>Logout</button></nav>
+    <nav class="main-nav"><a href="index.html" data-i18n="navHome">Home</a><a href="passenger.html" data-i18n="passengerPortal">Passenger</a><label class="language-picker"><span data-i18n="languageLabel">Language</span><select id="language-select" aria-label="Select language"><option value="en">English</option><option value="ta">தமிழ்</option><option value="te">తెలుగు</option><option value="hi">हिन्दी</option><option value="bn">বাংলা</option><option value="mr">मराठी</option><option value="gu">ગુજરાતી</option><option value="kn">ಕನ್ನಡ</option><option value="ml">മലയാളം</option><option value="pa">ਪੰਜਾਬੀ</option><option value="or">ଓଡ଼ିଆ</option><option value="as">অসমীয়া</option><option value="ur">اردو</option></select></label><button class="button button-secondary" id="admin-logout" type="button" hidden data-i18n="logout">Logout</button></nav>
   </header>
 
   <main class="section admin-section">
@@ -17,11 +17,11 @@
       <div class="assistant-icon">🔐</div>
       <h3 data-i18n="adminSignIn">Admin Sign In</h3>
       <p class="muted-text">Sign in to review passenger requests and demand.</p>
-      <label for="admin-username">Username</label>
-      <input id="admin-username" autocomplete="username" placeholder="Admin username">
-      <label for="admin-password">Password</label>
+      <label for="admin-username" data-i18n="username">Username</label>
+      <input id="admin-username" autocomplete="username" placeholder="Admin username" data-i18n-placeholder="username">
+      <label for="admin-password" data-i18n="password">Password</label>
       <input id="admin-password" type="password" autocomplete="current-password" placeholder="Admin password">
-      <button class="button button-primary full-button" id="admin-login-button" type="button">Sign In</button>
+      <button class="button button-primary full-button" id="admin-login-button" type="button" data-i18n="signIn">Sign In</button>
       <p id="admin-login-message" class="form-message" aria-live="polite"></p>
       <p class="demo-note">Demo login: <strong>admin</strong> / <strong>admin123</strong></p>
     </div>
@@ -34,17 +34,17 @@
       </div>
 
       <div class="admin-stat-grid">
-        <article class="admin-stat"><span>Total Requests</span><strong id="total-requests">0</strong></article>
-        <article class="admin-stat"><span>Pending Review</span><strong id="pending-requests">0</strong></article>
-        <article class="admin-stat"><span>Approved</span><strong id="approved-requests">0</strong></article>
-        <article class="admin-stat"><span>Passenger Check-ins</span><strong id="total-checkins">0</strong></article>
+        <article class="admin-stat"><span data-i18n="totalRequests">Total Requests</span><strong id="total-requests">0</strong></article>
+        <article class="admin-stat"><span data-i18n="pendingReview">Pending Review</span><strong id="pending-requests">0</strong></article>
+        <article class="admin-stat"><span data-i18n="approved">Approved</span><strong id="approved-requests">0</strong></article>
+        <article class="admin-stat"><span data-i18n="passengerCheckins">Passenger Check-ins</span><strong id="total-checkins">0</strong></article>
       </div>
 
       <section class="dashboard-card admin-panel-card">
         <div class="card-heading"><span>📊</span><div><h2 data-i18n="demandCharts">Passenger Demand Charts</h2><p>Visual summary of historical CSV demand and browser check-ins.</p></div></div>
         <div class="chart-grid">
-          <div class="chart-panel"><h3>Passengers by Route</h3><canvas id="route-demand-chart" aria-label="Bar chart showing passengers by route"></canvas></div>
-          <div class="chart-panel"><h3>Demand by Time Slot</h3><canvas id="time-demand-chart" aria-label="Doughnut chart showing passengers by time slot"></canvas></div>
+          <div class="chart-panel"><h3 data-i18n="passengersByRoute">Passengers by Route</h3><canvas id="route-demand-chart" aria-label="Bar chart showing passengers by route"></canvas></div>
+          <div class="chart-panel"><h3 data-i18n="demandByTime">Demand by Time Slot</h3><canvas id="time-demand-chart" aria-label="Doughnut chart showing passengers by time slot"></canvas></div>
         </div>
         <p id="chart-status" class="small-note">Charts use the sample CSV dataset. Check-ins are shown separately when available.</p>
       </section>
@@ -69,7 +69,7 @@
       <section class="dashboard-card admin-panel-card">
         <div class="card-heading"><span>🤖</span><div><h2 data-i18n="aiAgent">SmartRoute AI Agent Recommendations</h2><p>Analyzes predicted demand and suggests bus capacity and schedule changes. Admin makes the final decision.</p></div></div>
         <div id="agent-recommendations" class="result-area"></div>
-        <button class="button button-secondary" id="refresh-analysis" type="button">Refresh Dataset & Analysis</button>
+        <button class="button button-secondary" id="refresh-analysis" type="button" data-i18n="refreshAnalysis">Refresh Dataset & Analysis</button>
       </section>
 
       <section class="dashboard-card admin-panel-card">
