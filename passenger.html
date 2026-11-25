@@ -11,8 +11,8 @@
   <header class="site-header">
     <a class="brand" href="index.html">🚌 SmartRoute AI</a>
     <nav class="main-nav">
-      <a href="index.html">Home</a>
-      <a href="admin.html">Admin</a>
+      <a href="index.html" data-i18n="navHome">Home</a>
+      <a href="admin.html" data-i18n="adminPlanning">Admin</a><label class="language-picker"><span data-i18n="languageLabel">Language</span><select id="language-select" aria-label="Select language"><option value="en">English</option><option value="ta">தமிழ்</option><option value="te">తెలుగు</option><option value="hi">हिन्दी</option><option value="bn">বাংলা</option><option value="mr">मराठी</option><option value="gu">ગુજરાતી</option><option value="kn">ಕನ್ನಡ</option><option value="ml">മലയാളം</option><option value="pa">ਪੰਜਾਬੀ</option><option value="or">ଓଡ଼ିଆ</option><option value="as">অসমীয়া</option><option value="ur">اردو</option></select></label>
       <button class="button button-secondary" type="button" onclick="logoutPassenger()">Logout</button>
     </nav>
   </header>
@@ -20,13 +20,13 @@
   <main class="section dashboard-section">
     <p id="cloud-status" class="small-note" aria-live="polite">Checking SQLite database connection...</p>
     <div class="dashboard-welcome">
-      <div><span class="eyebrow">PASSENGER PORTAL</span><h1>Plan your journey</h1><p>Find a route, record your travel demand, or request a better bus service.</p></div>
+      <div><span class="eyebrow" data-i18n="passengerPortal">PASSENGER PORTAL</span><h1 data-i18n="planJourney">Plan your journey</h1><p data-i18n="passengerIntro">Find a route, record your travel demand, or request a better bus service.</p></div>
       <div class="welcome-icon">🚌</div>
     </div>
 
     <div class="dashboard-grid">
       <section class="dashboard-card">
-        <div class="card-heading"><span>🔎</span><div><h2>Route Finder</h2><p>Search road routes between locations anywhere in India.</p></div></div>
+        <div class="card-heading"><span>🔎</span><div><h2 data-i18n="routeFinder">Route Finder</h2><p>Search road routes between locations anywhere in India.</p></div></div>
         <form id="route-form">
           <label for="route-from">From</label><input id="route-from" required placeholder="e.g. Chennai or Khambhampadu, Andhra Pradesh">
           <label for="route-to">To</label><input id="route-to" required placeholder="e.g. Bengaluru or Tiruvuru, Andhra Pradesh">
@@ -40,7 +40,7 @@
       </section>
 
       <section class="dashboard-card">
-        <div class="card-heading"><span>📝</span><div><h2>Passenger Check-in</h2><p>Record how many people need this journey.</p></div></div>
+        <div class="card-heading"><span>📝</span><div><h2 data-i18n="passengerCheckin">Passenger Check-in</h2><p>Record how many people need this journey.</p></div></div>
         <form id="checkin-form">
           <label for="checkin-from">From</label><input id="checkin-from" required placeholder="Village / town">
           <label for="checkin-to">To</label><input id="checkin-to" required placeholder="Destination">
@@ -52,7 +52,7 @@
       </section>
 
       <section class="dashboard-card">
-        <div class="card-heading"><span>📨</span><div><h2>Request a Bus Service</h2><p>Ask the transport admin for a new service or timing change.</p></div></div>
+        <div class="card-heading"><span>📨</span><div><h2 data-i18n="requestBus">Request a Bus Service</h2><p>Ask the transport admin for a new service or timing change.</p></div></div>
         <form id="request-form">
           <label for="request-from">From</label><input id="request-from" required placeholder="Village / town">
           <label for="request-to">To</label><input id="request-to" required placeholder="Destination">
@@ -65,12 +65,12 @@
       </section>
 
       <section class="dashboard-card">
-        <div class="card-heading"><span>🗓️</span><div><h2>Published Bus Schedules</h2><p>View schedules approved by the transport admin.</p></div></div>
+        <div class="card-heading"><span>🗓️</span><div><h2 data-i18n="publishedSchedules">Published Bus Schedules</h2><p>View schedules approved by the transport admin.</p></div></div>
         <div id="published-schedules" class="result-area"><p class="muted-text">Loading approved schedules...</p></div>
       </section>
 
       <section class="dashboard-card">
-        <div class="card-heading"><span>📋</span><div><h2>My Requests</h2><p>Check the latest status of your service requests.</p></div></div>
+        <div class="card-heading"><span>📋</span><div><h2 data-i18n="myRequests">My Requests</h2><p>Check the latest status of your service requests.</p></div></div>
         <div id="my-requests" class="result-area"><p class="muted-text">No requests submitted yet.</p></div>
       </section>
     </div>
@@ -83,6 +83,7 @@
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
   <script src="js/firebase-config.js"></script>
   <script src="js/cloud-store.js"></script>
+  <script src="js/main.js"></script>
   <script src="js/passenger.js"></script>
 </body>
 </html>
