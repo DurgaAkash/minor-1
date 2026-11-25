@@ -9,6 +9,8 @@ let dashboardInitialization = null;
 let routeDemandChart = null;
 let timeDemandChart = null;
 let latestDashboardCheckins = [];
+let lastAgentInputSignature = null;
+let dashboardRefreshInProgress = false;
 
 function getStoredList(key) {
   try {
@@ -99,9 +101,15 @@ async function renderAdminDashboard(options = {}) {
   latestDashboardCheckins = checkins;
   renderDemandCharts(checkins);
 
-  // Re-run the ML forecast and create schedule proposals only for initial
-  // loading or an explicit analysis refresh, not after every request decision.
-  if (options.refreshAnalysis !== false) {
+  // Automatically re-run the decision agent when new requests or check-ins arrive.
+  // This removes the need for an admin to manually start analysis for each request.
+  const agentInputSignature = JSON.stringify({
+    requests: requests.map(item => [item.id, item.status, item.from, item.to, item.time, item.passengers]),
+    checkins: checkins.map(item => [item.id, item.from, item.to, item.time, item.passengers])
+  });
+  const inputsChanged = agentInputSignature !== lastAgentInputSignature;
+  if (options.refreshAnalysis !== false || inputsChanged) {
+    lastAgentInputSignature = agentInputSignature;
     await renderPredictionsAndAgent(checkins, requests);
   }
 }
@@ -116,21 +124,17 @@ function renderRequests(requests) {
   container.innerHTML = requests.slice().reverse().map(request => {
     const status = request.status || "PENDING";
     const statusClass = status === "APPROVED" ? "status-approved" : status === "REJECTED" ? "status-rejected" : "status-pending";
-    const isPending = status === "PENDING";
+    const displayStatus = status === "PENDING" ? "AI ANALYSIS" : status;
+    const displayClass = status === "PENDING" ? "status-available" : statusClass;
     return `
       <article class="admin-request-card">
-        <div class="request-top"><strong>${safeText(request.id)}</strong><span class="status-pill ${statusClass}">${safeText(status)}</span></div>
+        <div class="request-top"><strong>Request #${safeText(request.id)}</strong><span class="status-pill ${displayClass}">${safeText(displayStatus)}</span></div>
         <h3>${safeText(request.from)} → ${safeText(request.to)}</h3>
         <p>Preferred time: ${safeText(request.time)} · Expected passengers: <strong>${Number(request.passengers) || 0}</strong></p>
         <p>Reason: ${safeText(request.reason || "Not provided")}</p>
         <p class="small-note">Submitted: ${request.createdAt ? new Date(request.createdAt).toLocaleString() : "Date unavailable"}</p>
-        <label for="note-${safeText(request.id)}">Admin note</label>
-        <textarea id="note-${safeText(request.id)}" rows="2" placeholder="Add a reason or decision note">${safeText(request.adminNote || "")}</textarea>
-        ${isPending ? `
-          <div class="admin-actions">
-            <button class="button button-primary" type="button" data-action="approve" data-id="${safeText(request.id)}">Approve</button>
-            <button class="button button-danger" type="button" data-action="reject" data-id="${safeText(request.id)}">Reject</button>
-          </div>` : ""}
+        <p class="small-note">${status === "PENDING" ? "Automatically included in AI demand analysis. Any proposed bus schedule still requires admin approval before publication." : "Request record: " + safeText(status)}</p>
+        ${request.adminNote ? `<p class="small-note">Note: ${safeText(request.adminNote)}</p>` : ""}
       </article>`;
   }).join("");
 }
@@ -261,6 +265,19 @@ async function renderPredictionsAndAgent(checkins, requests) {
       modelStatus.className = "small-note error-message";
     }
   }
+
+  // Ensure new passenger-request routes are analysed even when the CSV/ML
+  // history has never seen those routes before.
+  const forecastKeys = new Set(forecasts.map(item =>
+    [item.from, item.to, item.time].map(value => String(value).trim().toLowerCase()).join("|")
+  ));
+  requests.filter(item => item.status === "PENDING").forEach(item => {
+    const key = [item.from, item.to, item.time].map(value => String(value).trim().toLowerCase()).join("|");
+    if (!forecastKeys.has(key)) {
+      forecasts.push({ from: item.from, to: item.to, time: item.time, forecast: 0, sampleCount: 0 });
+      forecastKeys.add(key);
+    }
+  });
 
   if (!forecasts.length) {
     predictionBox.innerHTML = '<p class="muted-text">No demand forecast is available. Check the CSV dataset and prediction service.</p>';
@@ -575,5 +592,20 @@ const savedUser = (() => {
 })();
 if (savedUser && savedUser.role === "admin") showAdminDashboard();
 
+
+// Poll SQLite while the admin dashboard is open. New passenger requests/check-ins
+// automatically trigger the agent and refresh proposed schedules without a button click.
+setInterval(async () => {
+  const dashboard = document.getElementById("admin-dashboard");
+  if (!dashboard || dashboard.hidden || dashboardRefreshInProgress) return;
+  dashboardRefreshInProgress = true;
+  try {
+    await renderAdminDashboard({ refreshAnalysis: false });
+  } catch (error) {
+    console.error("Automatic dashboard sync failed:", error);
+  } finally {
+    dashboardRefreshInProgress = false;
+  }
+}, 15000);
 
 // Database connection status is updated after records are loaded from the Flask API.
