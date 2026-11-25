@@ -37,7 +37,7 @@ minor-1/
 1. Pull the latest repository changes and open the project folder in VS Code.
 2. Start the SQLite backend: `python backend/app.py`.
 3. Start the ML service in another terminal: `python ml-service/app.py`.
-4. Open `index.html` using VS Code Live Server.
+4. Start a third terminal and run `python -m http.server 5500`, then open `http://127.0.0.1:5500/index.html`. Keep the backend and ML terminals running.
 5. Passenger demo login: `passenger` / `travel123`.
 6. Admin demo login: `admin` / `admin123`.
 
@@ -74,3 +74,10 @@ minor-1/
 - Bus capacity is an assumption; real planning must account for travel duration, vehicle/driver availability, depot constraints and verified demand.
 - The map displays road routing, not live bus GPS tracking.
 - Use Live Server or another local HTTP server rather than opening HTML files directly.
+
+
+### Passenger-to-admin workflow tests
+- Install the backend dependencies if they are not already installed: `python -m pip install -r backend/requirements.txt` (or install Flask and Flask-CORS).
+- From the repository root, run: `python -m unittest discover -s tests -v`.
+- The tests use a temporary SQLite database and cover passenger request submission, admin visibility, approval/rejection, passenger status refresh data and invalid decisions. They do not modify the development database.
+- Browser workflow checklist: submit a passenger request; confirm it appears in Admin → Passenger Service Requests; approve it with a note; wait up to 15 seconds or refresh the Passenger Dashboard; confirm the status and admin note appear under My Requests.
