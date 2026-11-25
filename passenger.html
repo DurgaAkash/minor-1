@@ -28,8 +28,8 @@
       <section class="dashboard-card">
         <div class="card-heading"><span>🔎</span><div><h2 data-i18n="routeFinder">Route Finder</h2><p data-i18n="routeDescription">Search road routes between locations anywhere in India.</p></div></div>
         <form id="route-form">
-          <label for="route-from" data-i18n="fromLabel">From</label><input id="route-from" required placeholder="e.g. Chennai or Khambhampadu, Andhra Pradesh">
-          <label for="route-to" data-i18n="toLabel">To</label><input id="route-to" required placeholder="e.g. Bengaluru or Tiruvuru, Andhra Pradesh">
+          <label for="route-from" data-i18n="fromLabel">From</label><input id="route-from" required placeholder="e.g. Chennai or Khambhampadu, Andhra Pradesh" data-i18n-placeholder="routeFromPlaceholder">
+          <label for="route-to" data-i18n="toLabel">To</label><input id="route-to" required placeholder="e.g. Bengaluru or Tiruvuru, Andhra Pradesh" data-i18n-placeholder="routeToPlaceholder">
           <label for="route-date" data-i18n="travelDate">Travel date</label><input id="route-date" type="date" required>
           <button class="button button-primary full-button" type="submit" data-i18n="searchRoutes">Search Routes</button>
         </form>
@@ -42,8 +42,8 @@
       <section class="dashboard-card">
         <div class="card-heading"><span>📝</span><div><h2 data-i18n="passengerCheckin">Passenger Check-in</h2><p>Record how many people need this journey.</p></div></div>
         <form id="checkin-form">
-          <label for="checkin-from" data-i18n="fromLabel">From</label><input id="checkin-from" required placeholder="Village / town">
-          <label for="checkin-to" data-i18n="toLabel">To</label><input id="checkin-to" required placeholder="Destination">
+          <label for="checkin-from" data-i18n="fromLabel">From</label><input id="checkin-from" required placeholder="Village / town" data-i18n-placeholder="villagePlaceholder">
+          <label for="checkin-to" data-i18n="toLabel">To</label><input id="checkin-to" required placeholder="Destination" data-i18n-placeholder="destinationPlaceholder">
           <label for="checkin-time" data-i18n="preferredTime">Preferred time</label><select id="checkin-time"><option data-i18n="morning">Morning</option><option data-i18n="afternoon">Afternoon</option><option data-i18n="evening">Evening</option></select>
           <label for="checkin-count" data-i18n="passengerCount">Number of passengers</label><input id="checkin-count" type="number" min="1" max="100" value="1" required>
           <button class="button button-primary full-button" type="submit" data-i18n="submitCheckin">Submit Check-in</button>
@@ -54,8 +54,8 @@
       <section class="dashboard-card">
         <div class="card-heading"><span>📨</span><div><h2 data-i18n="requestBus">Request a Bus Service</h2><p data-i18n="requestDescription">Ask the transport admin for a new service or timing change.</p></div></div>
         <form id="request-form">
-          <label for="request-from" data-i18n="fromLabel">From</label><input id="request-from" required placeholder="Village / town">
-          <label for="request-to" data-i18n="toLabel">To</label><input id="request-to" required placeholder="Destination">
+          <label for="request-from" data-i18n="fromLabel">From</label><input id="request-from" required placeholder="Village / town" data-i18n-placeholder="villagePlaceholder">
+          <label for="request-to" data-i18n="toLabel">To</label><input id="request-to" required placeholder="Destination" data-i18n-placeholder="destinationPlaceholder">
           <label for="request-time" data-i18n="preferredTime">Preferred time</label><select id="request-time"><option>Morning</option><option>Afternoon</option><option>Evening</option></select>
           <label for="request-count" data-i18n="expectedPassengers">Expected passengers</label><input id="request-count" type="number" min="1" max="500" value="1" required>
           <label for="request-reason" data-i18n="requestReason">Reason for request</label><textarea id="request-reason" rows="3" required placeholder="Explain why this service is needed" data-i18n-placeholder="reasonPlaceholder"></textarea>
