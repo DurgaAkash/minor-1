@@ -11,50 +11,58 @@
   <header class="site-header">
     <a class="brand" href="index.html"><span class="brand-icon">🚌</span> SmartRoute AI</a>
     <nav class="main-nav" aria-label="Main navigation">
-      <a href="#home">Home</a>
-      <a href="#features">Features</a>
-      <a href="#about">About</a>
+      <a href="#home" data-i18n="navHome">Home</a>
+      <a href="#features" data-i18n="navFeatures">Features</a>
+      <a href="#about" data-i18n="navAbout">About</a>
+      <label class="language-picker"><span data-i18n="languageLabel">Language</span>
+        <select id="language-select" aria-label="Select language">
+          <option value="en">English</option>
+          <option value="ta">தமிழ்</option>
+          <option value="te">తెలుగు</option>
+          <option value="hi">हिन्दी</option>
+        </select>
+      </label>
     </nav>
   </header>
 
   <main>
     <section class="hero" id="home">
       <div class="hero-copy">
-        <span class="eyebrow">SMARTER RURAL MOBILITY</span>
-        <h1>Better bus services for <span>every village.</span></h1>
-        <p>Find routes, share travel requirements and use demand-based recommendations to improve rural transportation.</p>
+        <span class="eyebrow" data-i18n="eyebrow">SMARTER RURAL MOBILITY</span>
+        <h1><span data-i18n="heroTitle">Better bus services for</span> <span data-i18n="heroTitleAccent">every village.</span></h1>
+        <p data-i18n="heroDescription">Find routes, share travel requirements and use demand-based recommendations to improve rural transportation.</p>
         <div class="hero-actions">
-          <a class="button button-secondary" href="#features">Explore Features</a>
+          <a class="button button-secondary" href="#features" data-i18n="explore">Explore Features</a>
         </div>
       </div>
       <div class="hero-panel">
-        <div class="panel-top"><span class="live-dot"></span> TRANSPORT PLANNING</div>
+        <div class="panel-top"><span class="live-dot"></span> <span data-i18n="panelTitle">TRANSPORT PLANNING</span></div>
         <div class="route-visual">
-          <div class="route-point"><span class="point-dot"></span><div><small>STARTING POINT</small><strong>Village</strong></div></div>
+          <div class="route-point"><span class="point-dot"></span><div><small data-i18n="startingPoint">STARTING POINT</small><strong data-i18n="village">Village</strong></div></div>
           <div class="route-line"></div>
-          <div class="route-point"><span class="point-dot point-end"></span><div><small>DESTINATION</small><strong>Nearby Town</strong></div></div>
+          <div class="route-point"><span class="point-dot point-end"></span><div><small data-i18n="destination">DESTINATION</small><strong data-i18n="nearbyTown">Nearby Town</strong></div></div>
         </div>
-        <div class="panel-note">Passenger demand helps administrators plan better services.</div>
+        <div class="panel-note" data-i18n="panelNote">Passenger demand helps administrators plan better services.</div>
       </div>
     </section>
 
     <section class="section" id="features">
       <div class="section-heading">
-        <span class="eyebrow">WHAT THE WEBSITE OFFERS</span>
-        <h2>Simple tools, smarter planning</h2>
-        <p>One place for passengers to request services and administrators to review transport needs.</p>
+        <span class="eyebrow" data-i18n="featuresEyebrow">WHAT THE WEBSITE OFFERS</span>
+        <h2 data-i18n="featuresTitle">Simple tools, smarter planning</h2>
+        <p data-i18n="featuresDescription">One place for passengers to request services and administrators to review transport needs.</p>
       </div>
       <div class="feature-grid">
-        <article class="feature-card"><div class="feature-icon">🗺️</div><h3>Route Finder</h3><p>Search for available routes between a starting point and destination.</p></article>
-        <article class="feature-card"><div class="feature-icon">👥</div><h3>Passenger Requests</h3><p>Submit a request when a route or bus timing does not meet your needs.</p></article>
-        <article class="feature-card"><div class="feature-icon">🤖</div><h3>AI Agent</h3><p>Analyze requests and passenger demand to suggest possible service improvements.</p></article>
-        <article class="feature-card"><div class="feature-icon">📊</div><h3>Admin Planning</h3><p>Review requests, check AI suggestions and manage proposed schedules.</p></article>
+        <article class="feature-card"><div class="feature-icon">🗺️</div><h3 data-i18n="routeFinder">Route Finder</h3><p data-i18n="routeDescription">Search for available routes between a starting point and destination.</p></article>
+        <article class="feature-card"><div class="feature-icon">👥</div><h3 data-i18n="passengerRequests">Passenger Requests</h3><p data-i18n="requestDescription">Submit a request when a route or bus timing does not meet your needs.</p></article>
+        <article class="feature-card"><div class="feature-icon">🤖</div><h3 data-i18n="aiAgent">AI Agent</h3><p data-i18n="agentDescription">Analyze requests and passenger demand to suggest possible service improvements.</p></article>
+        <article class="feature-card"><div class="feature-icon">📊</div><h3 data-i18n="adminPlanning">Admin Planning</h3><p data-i18n="adminDescription">Review requests, check AI suggestions and manage proposed schedules.</p></article>
       </div>
     </section>
 
     <section class="about-band" id="about">
-      <div><span class="eyebrow">OUR PURPOSE</span><h2>Connecting rural communities through data-driven transport planning.</h2></div>
-      <a class="button button-light" href="login.html">Open SmartRoute AI</a>
+      <div><span class="eyebrow" data-i18n="purposeEyebrow">OUR PURPOSE</span><h2 data-i18n="purposeTitle">Connecting rural communities through data-driven transport planning.</h2></div>
+      <a class="button button-light" href="login.html" data-i18n="openApp">Open SmartRoute AI</a>
     </section>
   </main>
 
