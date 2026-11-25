@@ -77,7 +77,7 @@ minor-1/
 
 
 ### Passenger-to-admin workflow tests
-- Install the backend dependencies if they are not already installed: `python -m pip install -r backend/requirements.txt` (or install Flask and Flask-CORS).
+- Install backend dependencies if needed: `python -m pip install flask flask-cors`.
 - From the repository root, run: `python -m unittest discover -s tests -v`.
 - The tests use a temporary SQLite database and cover passenger request submission, admin visibility, approval/rejection, passenger status refresh data and invalid decisions. They do not modify the development database.
 - Browser workflow checklist: submit a passenger request; confirm it appears in Admin → Passenger Service Requests; approve it with a note; wait up to 15 seconds or refresh the Passenger Dashboard; confirm the status and admin note appear under My Requests.
