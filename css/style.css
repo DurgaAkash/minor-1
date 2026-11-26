@@ -256,3 +256,8 @@ a { color: inherit; text-decoration: none; }
   .sidebar-link { flex: 0 0 auto; padding: 9px 11px; white-space: nowrap; font-size: .8rem; }
   .sidebar-help { display: none; }
 }
+
+
+/* Sidebar navigation behaves like page tabs: only the selected content is visible. */
+.sidebar-page[hidden] { display: none !important; }
+.passenger-main-content .sidebar-page { width: 100%; }
