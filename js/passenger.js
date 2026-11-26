@@ -482,7 +482,7 @@ async function refreshTrackedBus() {
     }
     busTrackingMarker.bindPopup("<strong>" + escapeHTML(result.bus_number) + " — " + escapeHTML(result.bus_name) + "</strong><br>" + escapeHTML(result.source) + " → " + escapeHTML(result.destination));
     busTrackingMap.setView(position, Math.max(busTrackingMap.getZoom(), 14));
-    const updated = new Date(result.updated_at.replace(" ", "T"));
+    const updated = new Date(result.updated_at.replace(" ", "T") + "Z");
     const ageSeconds = Math.max(0, Math.round((Date.now() - updated.getTime()) / 1000));
     const freshness = ageSeconds > 45 ? "GPS signal is stale" : "GPS updating";
     status.textContent = result.bus_number + " — " + result.bus_name + " | " + freshness +
