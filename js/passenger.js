@@ -409,33 +409,61 @@ async function renderPublishedSchedules() {
 
     if (!matchingSchedules.length) {
       container.innerHTML = activeScheduleRoute
-        ? '<p class="muted-text">No admin-approved schedule matches ' +
+        ? '<p class="muted-text">No AI-generated published schedule matches ' +
           escapeHTML(activeScheduleRoute.from) + ' → ' + escapeHTML(activeScheduleRoute.to) +
-          ' yet. You can submit a bus service request for this route.</p>'
-        : '<p class="muted-text">No approved bus schedules have been published yet.</p>';
+          ' yet. Submit a check-in or bus request so SmartRoute AI can analyse demand for this route.</p>'
+        : '<p class="muted-text">No AI-generated bus schedules have been published yet. Passenger check-ins and bus requests help the system estimate demand and plan buses.</p>';
       return;
     }
-    if (activeScheduleRoute) {
-      container.innerHTML = '<p class="small-note">Showing approved schedules for ' +
-        escapeHTML(activeScheduleRoute.from) + ' → ' + escapeHTML(activeScheduleRoute.to) + '.</p>';
-    } else {
-      container.innerHTML = "";
-    }
-    container.innerHTML += matchingSchedules.map(item => `
-      <article class="request-result">
-        <div class="request-top"><strong>${escapeHTML(item.source)} → ${escapeHTML(item.destination)}</strong><span class="status-pill status-approved">PUBLISHED</span></div>
-        <p><strong>Time slot:</strong> ${escapeHTML(item.time_slot)}</p>
-        <p><strong>${item.bus_assignment_type === "OPERATOR" ? "Operator bus number" : "AI fleet allocation ID"}:</strong> ${escapeHTML(item.bus_number || "Not allocated")} · <strong>Bus name:</strong> ${escapeHTML(item.bus_name || "Awaiting operator confirmation")}</p>
-        <p><strong>Planning demand estimate:</strong> ${Number(item.predicted_passengers)} passengers · <strong>AI suggested buses:</strong> ${Number(item.buses)}</p>
-        <p><strong>Departure proposals:</strong> ${(item.departures || []).map(escapeHTML).join(" · ")}</p>
-        ${item.admin_note ? `<p class="admin-note">SmartRoute AI: ${escapeHTML(item.admin_note)}</p>` : ""}
-        <p class="small-note">Admin-approved prototype schedule. Confirm with the bus operator before travelling.</p>
-      </article>`).join("");
+
+    container.innerHTML = matchingSchedules.map(item => {
+      const ai = item.ai_analysis || null;
+      const demand = Number(item.predicted_passengers || (ai && ai.planning_demand) || 0);
+      const busCount = Math.max(1, Math.min(100, Number(item.buses) || 1));
+      const departures = Array.isArray(item.departures) ? item.departures : [];
+      const isModelForecast = ai && ai.ml_forecast !== null && ai.ml_forecast !== undefined;
+      const basisLabel = isModelForecast
+        ? "Random Forest model forecast + passenger request signal"
+        : (ai ? "Observed check-ins / requests fallback (no exact ML forecast)" : "AI planning estimate recorded with this schedule");
+      const busCards = Array.from({ length: busCount }, (_, index) => {
+        const isConfirmedOperatorBus = index === 0 && item.bus_assignment_type === "OPERATOR" && item.bus_number;
+        const busLabel = isConfirmedOperatorBus
+          ? escapeHTML(item.bus_number)
+          : "AI planning slot " + (index + 1);
+        const busName = isConfirmedOperatorBus
+          ? escapeHTML(item.bus_name || "Operator bus")
+          : "Operator vehicle assignment pending";
+        return `<div class="published-bus-row">
+          <div><strong>Bus ${index + 1}: ${busLabel}</strong><span>${escapeHTML(busName)}</span></div>
+          <div class="published-bus-time"><small>Suggested departure</small><strong>${escapeHTML(departures[index] || "Time to be confirmed")}</strong></div>
+          <span class="published-bus-status">${isConfirmedOperatorBus ? "Operator bus recorded" : "Planning allocation"}</span>
+        </div>`;
+      }).join("");
+
+      return `<article class="published-ai-schedule">
+        <div class="published-ai-heading">
+          <div><span class="eyebrow">AI DEMAND-BASED SCHEDULE</span><h3>${escapeHTML(item.source)} → ${escapeHTML(item.destination)}</h3></div>
+          <span class="status-pill status-approved">PUBLISHED</span>
+        </div>
+        <div class="published-ai-metrics">
+          <div><strong>${demand}</strong><span>Planning passengers</span></div>
+          <div><strong>${busCount}</strong><span>AI suggested buses</span></div>
+          <div><strong>${escapeHTML(item.time_slot)}</strong><span>Demand time slot</span></div>
+        </div>
+        <div class="published-ai-basis"><strong>Prediction basis:</strong> ${escapeHTML(basisLabel)}
+          ${isModelForecast ? `<span>Model forecast: ${Math.round(Number(ai.ml_forecast))} passengers</span>` : ""}
+        </div>
+        <h4 class="published-bus-title">Buses planned from demand analysis</h4>
+        <div class="published-bus-list">${busCards}</div>
+        ${ai && ai.explanation ? `<p class="small-note published-ai-explanation">${escapeHTML(ai.explanation)}</p>` : ""}
+        ${item.admin_note ? `<p class="admin-note">SmartRoute AI / Admin note: ${escapeHTML(item.admin_note)}</p>` : ""}
+        <p class="small-note">These are AI-generated planning allocations and suggested departures, not proof that a physical bus has been dispatched. Confirm the actual bus and timing with the operator before travel.</p>
+      </article>`;
+    }).join("");
   } catch (error) {
     container.innerHTML = '<p class="error-message">Unable to load published schedules. Make sure the SQLite backend is running.</p>';
   }
 }
-
 
 async function renderMyRequests() {
   const container = document.getElementById("my-requests");
