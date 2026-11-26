@@ -572,7 +572,9 @@ def analyze_pending_demand():
     routes = conn.execute("""
         SELECT source, destination, preferred_time AS time_slot
         FROM requests WHERE status = 'PENDING'
-        GROUP BY lower(trim(source)), lower(trim(destination)), lower(trim(preferred_time))
+        UNION
+        SELECT source, destination, travel_time AS time_slot
+        FROM checkins
     """).fetchall()
     conn.close()
     runs = [
