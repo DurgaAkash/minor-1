@@ -242,12 +242,15 @@ def run_agent_analysis(source, destination, time_slot, trigger_type="request"):
             "of the request signal to avoid treating requests as confirmed boardings."
         )
     else:
-        planning_demand = max(0, int(pending) + int(checkins))
-        basis = "Observed check-ins and pending requests; no matching ML forecast"
+        # Without passenger-level identity, check-ins and requests may overlap.
+        # Use the larger observed signal rather than adding both and double-counting.
+        planning_demand = max(0, int(pending), int(checkins))
+        basis = "Larger of observed check-ins and pending requests; no matching ML forecast"
         explanation = (
             f"No exact historical model forecast was available for this route/time. "
-            f"The fallback uses {int(checkins)} check-in passengers and "
-            f"{int(pending)} pending-request passengers as a planning signal, not an ML prediction."
+            f"The fallback uses the larger of {int(checkins)} check-in passengers and "
+            f"{int(pending)} pending-request passengers to reduce possible overlap. "
+            "This is an observed-data planning estimate, not an ML prediction."
         )
 
     buses = max(1, math.ceil(planning_demand / BUS_CAPACITY))
