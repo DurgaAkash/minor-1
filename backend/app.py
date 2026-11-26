@@ -109,25 +109,12 @@ def initialize_database():
             admin_note TEXT DEFAULT '',
             bus_number TEXT DEFAULT '',
             bus_name TEXT DEFAULT '',
-            tracking_pin_hash TEXT DEFAULT '',
             bus_assignment_type TEXT NOT NULL DEFAULT 'OPERATOR',
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     """)
-    conn.execute("""
-        CREATE TABLE IF NOT EXISTS bus_locations (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            schedule_id INTEGER NOT NULL REFERENCES schedules(id) ON DELETE CASCADE,
-            travel_date TEXT NOT NULL,
-            latitude REAL NOT NULL,
-            longitude REAL NOT NULL,
-            accuracy REAL,
-            speed REAL,
-            heading REAL,
-            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            UNIQUE(schedule_id, travel_date)
-        )
-    """)
+    # Remove legacy GPS location history; this prototype has no live bus tracking.
+    conn.execute("DROP TABLE IF EXISTS bus_locations")
     conn.execute("""
         CREATE TABLE IF NOT EXISTS agent_runs (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -147,7 +134,6 @@ def initialize_database():
     for column, definition in (
         ("bus_number", "TEXT DEFAULT ''"),
         ("bus_name", "TEXT DEFAULT ''"),
-        ("tracking_pin_hash", "TEXT DEFAULT ''"),
         ("bus_assignment_type", "TEXT NOT NULL DEFAULT 'OPERATOR'")
     ):
         if column not in schedule_columns:
@@ -369,13 +355,13 @@ def run_agent_analysis(source, destination, time_slot, trigger_type="request"):
         (route_key,)
     ).fetchone()
     # Auto-allocate a non-registrational fleet ID when no real operator bus is linked.
-    # Never replace an operator-confirmed bus number or generate a driver GPS PIN here.
+    # Never replace an operator-confirmed bus number here.
     if not str(saved_schedule["bus_number"] or "").strip() or saved_schedule["bus_assignment_type"] == "AI_VIRTUAL":
         virtual_number = f"SRA-AI-{int(saved_schedule['id']):04d}"
         conn.execute("""
             UPDATE schedules
             SET bus_number = ?, bus_name = ?, bus_assignment_type = 'AI_VIRTUAL',
-                tracking_pin_hash = '', updated_at = CURRENT_TIMESTAMP
+                updated_at = CURRENT_TIMESTAMP
             WHERE id = ?
         """, (virtual_number, f"AI Fleet Slot ({buses} required)", saved_schedule["id"]))
     # Demo-mode agent auto-approval: this publishes a prototype schedule immediately.
@@ -585,7 +571,6 @@ def get_schedules():
     results = []
     for row in rows:
         item = dict(row)
-        item.pop("tracking_pin_hash", None)
         try:
             item["departures"] = json.loads(item["departures"])
         except (TypeError, ValueError):
@@ -645,7 +630,6 @@ def save_schedule_proposal():
     row = conn.execute("SELECT * FROM schedules WHERE route_key = ?", (route_key,)).fetchone()
     conn.close()
     result = dict(row)
-    result.pop("tracking_pin_hash", None)
     result["departures"] = json.loads(result["departures"])
     return jsonify(result), 200
 
@@ -696,7 +680,7 @@ def assign_bus(schedule_id):
     conn = get_db()
     cursor = conn.execute("""
         UPDATE schedules
-        SET bus_number = ?, bus_name = ?, tracking_pin_hash = '',
+        SET bus_number = ?, bus_name = ?,
             bus_assignment_type = 'OPERATOR', updated_at = CURRENT_TIMESTAMP
         WHERE id = ?
     """, (bus_number, bus_name, schedule_id))
