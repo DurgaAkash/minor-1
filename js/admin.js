@@ -287,7 +287,8 @@ async function renderPredictionsAndAgent(checkins, requests) {
       to: item.destination,
       time: item.time,
       forecast: Math.max(0, Math.round(item.predicted_passengers)),
-      sampleCount: item.training_records
+      sampleCount: item.training_records,
+      isModelForecast: true
     }));
     modelName = result.model || "Random Forest Regression";
     const sources = result.data_sources || {};
@@ -301,7 +302,7 @@ async function renderPredictionsAndAgent(checkins, requests) {
       modelStatus.className = "small-note success-message";
     }
   } catch (error) {
-    forecasts = calculateDemandForecast();
+    forecasts = calculateDemandForecast().map(item => ({ ...item, isModelForecast: false }));
     if (modelStatus) {
       modelStatus.textContent = modelDetails + " " + error.message;
       modelStatus.className = "small-note error-message";
@@ -316,7 +317,7 @@ async function renderPredictionsAndAgent(checkins, requests) {
   requests.filter(item => item.status === "PENDING").forEach(item => {
     const key = [item.from, item.to, item.time].map(value => String(value).trim().toLowerCase()).join("|");
     if (!forecastKeys.has(key)) {
-      forecasts.push({ from: item.from, to: item.to, time: item.time, forecast: 0, sampleCount: 0 });
+      forecasts.push({ from: item.from, to: item.to, time: item.time, forecast: 0, sampleCount: 0, isModelForecast: false });
       forecastKeys.add(key);
     }
   });
@@ -333,7 +334,7 @@ async function renderPredictionsAndAgent(checkins, requests) {
     forecasts.sort((a, b) => b.forecast - a.forecast).map(item => `
       <article class="demand-row">
         <div><strong>${safeText(item.from)} → ${safeText(item.to)}</strong><p class="small-note">${safeText(item.time)} · Based on ${item.sampleCount} training records</p></div>
-        <span class="demand-count">${item.forecast} passengers (estimated)</span>
+        <span class="demand-count">${item.isModelForecast ? item.forecast + " ML-estimated passengers" : item.sampleCount > 0 ? item.forecast + " moving-average baseline" : "No matching route history"}</span>
       </article>`).join("");
 
   // Explainable decision-agent layer built on top of the ML forecast.
@@ -353,9 +354,11 @@ async function renderPredictionsAndAgent(checkins, requests) {
     // Half of pending request passengers are used as an extra planning signal.
     // For a route absent from the model, use a clearly labelled observed-data
     // fallback rather than presenting a zero ML forecast as a prediction.
-    const hasRouteHistory = Number(item.sampleCount) > 0;
+    const hasModelForecast = item.isModelForecast === true && Number(item.sampleCount) > 0;
     const planningDemand = Math.max(0, Math.ceil(
-      hasRouteHistory ? item.forecast + pendingRequests * 0.5 : pendingRequests + liveCheckins
+      hasModelForecast
+        ? item.forecast + pendingRequests * 0.5
+        : item.forecast + pendingRequests + liveCheckins
     ));
     const busesRequired = Math.max(1, Math.ceil(planningDemand / BUS_CAPACITY));
     const extraBuses = Math.max(0, busesRequired - 1);
@@ -365,7 +368,9 @@ async function renderPredictionsAndAgent(checkins, requests) {
 
     let priority = "NORMAL";
     let action = "Keep the current service and monitor demand.";
-    let reason = "Estimated demand fits within one assumed bus capacity.";
+    let reason = hasModelForecast
+      ? "Random Forest estimate and pending-request signal fit within the assumed capacity."
+      : "No exact Random Forest route/time forecast; this estimate uses the historical moving-average baseline, check-ins and pending requests.";
     if (extraBuses > 0) {
       priority = "HIGH";
       action = "Plan " + extraBuses + " additional bus(es) for this route and time slot.";
@@ -391,12 +396,12 @@ async function renderPredictionsAndAgent(checkins, requests) {
   );
 
   agentBox.innerHTML = `
-    <p class="small-note">Decision agent combines the ML forecast with pending requests, ranks service urgency, estimates bus capacity and explains its reasoning. Check-ins are not added twice because they already feed the ML model. Admin approval is always required.</p>
+    <p class="small-note">Uses an exact Random Forest route/time forecast when available. Otherwise it labels the moving-average or observed-data fallback. Bus capacity is assumed to be 50; admin approval is always required.</p>
     ` + recommendations.map((item, index) => `
       <article class="agent-card">
         <div class="request-top"><strong>${index + 1}. ${safeText(item.from)} → ${safeText(item.to)}</strong><span class="status-pill ${item.priority === "HIGH" ? "status-pending" : item.priority === "REVIEW" ? "status-pending" : "status-available"}">${safeText(item.priority)} PRIORITY</span></div>
         <p><strong>Time:</strong> ${safeText(item.time)}</p>
-        <p><strong>ML forecast:</strong> ${item.forecast} passengers · <strong>Planning estimate:</strong> ${item.planningDemand} passengers</p>
+        <p><strong>${item.isModelForecast ? "Random Forest forecast" : item.sampleCount > 0 ? "Moving-average baseline" : "ML forecast unavailable"}:</strong> ${item.isModelForecast || item.sampleCount > 0 ? item.forecast + " passengers" : "No matching route history"} · <strong>Planning estimate:</strong> ${item.planningDemand} passengers</p>
         <p><strong>Estimated buses:</strong> ${item.busesRequired} at ${BUS_CAPACITY} assumed seats each · <strong>Capacity use:</strong> ${item.utilization}%</p>
         <p><strong>Evidence:</strong> ${item.liveCheckins} check-in passengers · ${item.pendingRequests} passengers in pending requests</p>
         <p><strong>Data confidence:</strong> ${safeText(item.confidence)} (${item.sampleCount} route records)</p>
@@ -424,7 +429,18 @@ async function renderSchedulePlans(recommendations) {
   box.innerHTML = '<p class="muted-text">Saving schedule proposals to SQLite...</p>';
 
   try {
+    // The backend agent owns proposals for routes triggered by live passenger
+    // activity. Do not overwrite those values or an admin's decision from the UI.
+    const existingResponse = await adminApiFetch("http://127.0.0.1:5001/api/schedules");
+    if (!existingResponse.ok) throw new Error("Could not load existing schedule proposals.");
+    const existingPlans = await existingResponse.json();
+    const existingKeys = new Set(existingPlans.map(plan =>
+      [plan.source, plan.destination, plan.time_slot].map(value => String(value).trim().toLowerCase()).join("|")
+    ));
+
     for (const item of recommendations) {
+      const key = [item.from, item.to, item.time].map(value => String(value).trim().toLowerCase()).join("|");
+      if (existingKeys.has(key)) continue;
       const start = scheduleSlotStart(item.time);
       const departures = Array.from(
         { length: item.busesRequired },
@@ -444,6 +460,7 @@ async function renderSchedulePlans(recommendations) {
       });
       const result = await response.json();
       if (!response.ok) throw new Error(result.error || "Could not save schedule proposal.");
+      existingKeys.add(key);
     }
 
     const response = await adminApiFetch("http://127.0.0.1:5001/api/schedules");
