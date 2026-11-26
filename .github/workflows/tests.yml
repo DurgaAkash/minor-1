@@ -1,0 +1,24 @@
+name: SmartRoute AI tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  backend-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install backend test dependencies
+        run: python -m pip install flask flask-cors
+      - name: Compile backend and run tests
+        run: |
+          python -m py_compile backend/app.py
+          python -m unittest discover -s tests -v
