@@ -4,12 +4,18 @@
 
 const ADMIN_KEYS = { requests: "smartrouteRequests", checkins: "smartrouteCheckins", user: "smartrouteUser", schedules: "smartrouteSchedules", token: "smartrouteToken" };
 
-function adminApiFetch(url, options = {}) {
+async function adminApiFetch(url, options = {}) {
   const token = localStorage.getItem(ADMIN_KEYS.token) || "";
-  return fetch(url, {
+  const response = await fetch(url, {
     ...options,
     headers: { ...(options.headers || {}), Authorization: "Bearer " + token }
   });
+  if (response.status === 401) {
+    localStorage.removeItem(ADMIN_KEYS.user);
+    localStorage.removeItem(ADMIN_KEYS.token);
+    window.location.reload();
+  }
+  return response;
 }
 const BUS_CAPACITY = 50;
 let historicalDemand = [];
