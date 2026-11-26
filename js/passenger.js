@@ -293,6 +293,8 @@ document.getElementById("route-form").addEventListener("submit", async function 
       </article>`;
     document.getElementById("request-from").value = from;
     document.getElementById("request-to").value = to;
+    document.getElementById("checkin-from").value = from;
+    document.getElementById("checkin-to").value = to;
   } catch (error) {
     activeScheduleRoute = { from, to };
     renderPublishedSchedules();
@@ -304,6 +306,8 @@ document.getElementById("route-form").addEventListener("submit", async function 
       </article>`;
     document.getElementById("request-from").value = from;
     document.getElementById("request-to").value = to;
+    document.getElementById("checkin-from").value = from;
+    document.getElementById("checkin-to").value = to;
   } finally {
     submitButton.disabled = false;
     submitButton.textContent = "Search Routes";
@@ -332,7 +336,10 @@ document.getElementById("checkin-form").addEventListener("submit", async functio
     });
     const result = await response.json();
     if (!response.ok) throw new Error(result.error || "Check-in could not be saved.");
-    showMessage("checkin-message", "Check-in saved to SQLite successfully. Record ID: " + result.id);
+    const analysis = result.agent
+      ? ` AI analysis: ${result.agent.planning_demand} planning passengers; ${result.agent.buses} bus(es) suggested. Basis: ${result.agent.data_basis}.`
+      : "";
+    showMessage("checkin-message", "Check-in saved successfully. Record ID: " + result.id + "." + analysis);
   } catch (error) {
     showMessage("checkin-message", "Could not save check-in. Start the SQLite backend and try again. " + error.message, true);
     return;
@@ -364,7 +371,10 @@ document.getElementById("request-form").addEventListener("submit", async functio
     });
     const result = await response.json();
     if (!response.ok) throw new Error(result.error || "Request could not be submitted.");
-    showMessage("request-message", "Your bus request #" + result.id + " was saved and sent for automatic AI demand analysis. Any proposed bus schedule will be published only after admin approval.");
+    const analysis = result.agent
+      ? ` AI analysis: ${result.agent.planning_demand} planning passengers; ${result.agent.buses} bus(es) suggested. Basis: ${result.agent.data_basis}.`
+      : " AI analysis is pending.";
+    showMessage("request-message", "Your bus request #" + result.id + " was saved." + analysis + " Any proposed schedule will be published only after admin approval.");
   } catch (error) {
     showMessage("request-message", "Could not submit request. Start the SQLite backend and try again. " + error.message, true);
     return;
