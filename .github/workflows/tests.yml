@@ -25,7 +25,8 @@ jobs:
           python -m unittest discover -s tests -v
       - name: Check JavaScript syntax
         run: |
-          node --check js/main.js
-          node --check js/login.js
-          node --check js/passenger.js
-          node --check js/admin.js
+          set -e
+          while IFS= read -r file; do
+            echo "Checking $file"
+            node --check "$file"
+          done < <(find js -maxdepth 1 -type f -name '*.js' -print | sort)
