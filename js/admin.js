@@ -533,10 +533,13 @@ async function assignBus(scheduleId) {
     });
     const result = await response.json();
     if (!response.ok) throw new Error(result.error || "Bus assignment failed.");
-    message.innerHTML = "Bus assigned. Driver PIN (share privately): <strong>" + safeText(result.driver_pin) +
-      "</strong><br><a href='driver.html' target='_blank' rel='noopener'>Open Driver GPS page</a>. This PIN is shown only now; generate a new one if lost.";
-    message.className = "form-message success-message";
     await renderSchedulePlans([]);
+    const refreshedMessage = document.getElementById("bus-assignment-message-" + scheduleId);
+    if (refreshedMessage) {
+      refreshedMessage.innerHTML = "Bus assigned. Driver PIN (share privately): <strong>" + safeText(result.driver_pin) +
+        "</strong><br><a href='driver.html' target='_blank' rel='noopener'>Open Driver GPS page</a>. This PIN is shown only now; assign again to generate a replacement.";
+      refreshedMessage.className = "form-message success-message";
+    }
   } catch (error) {
     message.textContent = error.message || "Could not assign bus.";
     message.className = "form-message error-message";
