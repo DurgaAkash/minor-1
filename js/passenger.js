@@ -302,12 +302,16 @@ document.getElementById("route-form").addEventListener("submit", async function 
   } catch (error) {
     activeScheduleRoute = { from, to };
     renderPublishedSchedules();
+    let busResults = "";
+    if (typeof window.searchIndiaBuses === "function") {
+      busResults = await window.searchIndiaBuses(from, to, date);
+    }
     results.innerHTML = `
       <article class="route-result">
-        <span class="status-pill status-pending">Route lookup unavailable</span>
-        <p>${escapeHTML(error.message || "Could not calculate this route.")}</p>
-        <p>You can still submit a bus service request for this journey.</p>
-      </article>`;
+        <span class="status-pill status-pending">Road map lookup unavailable</span>
+        <p>${escapeHTML(error.message || "Could not calculate the road route.")}</p>
+        <p>Bus timetable search is separate; check the results below. You can still submit a bus service request.</p>
+      </article>` + busResults;
     document.getElementById("request-from").value = from;
     document.getElementById("request-to").value = to;
     document.getElementById("checkin-from").value = from;
