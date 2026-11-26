@@ -8,6 +8,12 @@ const STORAGE_KEYS = {
   token: "smartrouteToken"
 };
 
+// Use the computer/phone hosting the frontend, not 127.0.0.1 on the
+// passenger's device. HTTPS deployments must proxy /api to the Flask backend.
+const PASSENGER_API_BASE = window.SMARTROUTE_API_BASE || (window.location.protocol === "https:"
+  ? "/api"
+  : "http://" + window.location.hostname + ":5001/api");
+
 async function passengerApiFetch(url, options = {}) {
   const token = localStorage.getItem(STORAGE_KEYS.token);
   if (!token) {
@@ -38,7 +44,7 @@ const passengerSession = (() => {
 if (!localStorage.getItem(STORAGE_KEYS.token) || !passengerSession || passengerSession.role !== "passenger") {
   window.location.replace("login.html");
 } else {
-  passengerApiFetch("http://127.0.0.1:5001/api/auth/me")
+  passengerApiFetch(PASSENGER_API_BASE + "/auth/me")
     .then(response => { if (!response.ok) throw new Error("Session expired"); return response.json(); })
     .then(result => { if (result.user.role !== "passenger") throw new Error("Wrong account role"); })
     .catch(() => {
@@ -342,7 +348,7 @@ document.getElementById("checkin-form").addEventListener("submit", async functio
   }
 
   try {
-    const response = await passengerApiFetch("http://127.0.0.1:5001/api/checkins", {
+    const response = await passengerApiFetch(PASSENGER_API_BASE + "/checkins", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(checkin)
@@ -377,7 +383,7 @@ document.getElementById("request-form").addEventListener("submit", async functio
   }
 
   try {
-    const response = await passengerApiFetch("http://127.0.0.1:5001/api/requests", {
+    const response = await passengerApiFetch(PASSENGER_API_BASE + "/requests", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(request)
@@ -402,7 +408,7 @@ async function renderPublishedSchedules() {
   const container = document.getElementById("published-schedules");
   if (!container) return;
   try {
-    const response = await passengerApiFetch("http://127.0.0.1:5001/api/schedules?published_only=true");
+    const response = await passengerApiFetch(PASSENGER_API_BASE + "/schedules?published_only=true");
     if (!response.ok) throw new Error("Published schedules could not be loaded.");
     const schedules = await response.json();
     const matchingSchedules = activeScheduleRoute
@@ -466,11 +472,17 @@ async function refreshTrackedBus() {
   if (!selectedTrackingScheduleId) return;
   const status = document.getElementById("bus-tracking-status");
   try {
-    const response = await passengerApiFetch("http://127.0.0.1:5001/api/tracking/" + selectedTrackingScheduleId);
+    const response = await passengerApiFetch(PASSENGER_API_BASE + "/tracking/" + selectedTrackingScheduleId);
     const result = await response.json();
     if (!response.ok) throw new Error(result.error || "Could not load bus tracking.");
     if (result.latitude === null || result.longitude === null) {
-      status.textContent = result.bus_number + " — " + result.bus_name + ": waiting for the driver to start GPS sharing for today's journey.";
+      if (busTrackingMarker) {
+        busTrackingMap.removeLayer(busTrackingMarker);
+        busTrackingMarker = null;
+      }
+      status.textContent = (result.bus_number || "Bus not assigned") +
+        (result.bus_name ? " — " + result.bus_name : "") +
+        ": waiting for the driver to start GPS sharing for today's journey.";
       return;
     }
     const position = [Number(result.latitude), Number(result.longitude)];
@@ -483,7 +495,7 @@ async function refreshTrackedBus() {
     busTrackingMap.setView(position, Math.max(busTrackingMap.getZoom(), 14));
     const updated = new Date(result.updated_at.replace(" ", "T") + "Z");
     const ageSeconds = Math.max(0, Math.round((Date.now() - updated.getTime()) / 1000));
-    const freshness = ageSeconds > 45 ? "GPS signal is stale" : "GPS updating";
+    const freshness = ageSeconds > 45 ? "GPS signal is stale — location may no longer be current" : "GPS updating";
     status.textContent = result.bus_number + " — " + result.bus_name + " | " + freshness +
       " | Last update: " + updated.toLocaleTimeString() + " (" + ageSeconds + " sec ago)" +
       (result.accuracy ? " | Accuracy ±" + Math.round(result.accuracy) + " m" : "");
@@ -496,7 +508,7 @@ window.trackBus = trackBus;
 async function renderMyRequests() {
   const container = document.getElementById("my-requests");
   try {
-    const response = await passengerApiFetch("http://127.0.0.1:5001/api/requests");
+    const response = await passengerApiFetch(PASSENGER_API_BASE + "/requests");
     if (!response.ok) throw new Error("Request list could not be loaded.");
     const requests = await response.json();
     if (!requests.length) {
@@ -522,7 +534,7 @@ function escapeHTML(value) {
 }
 
 async function logoutPassenger() {
-  try { await passengerApiFetch("http://127.0.0.1:5001/api/auth/logout", { method: "POST" }); }
+  try { await passengerApiFetch(PASSENGER_API_BASE + "/auth/logout", { method: "POST" }); }
   catch (error) { console.warn("Server sign-out could not be confirmed:", error); }
   localStorage.removeItem(STORAGE_KEYS.user);
   localStorage.removeItem(STORAGE_KEYS.token);
