@@ -84,6 +84,10 @@ let routeMap;
 let routeLayer;
 let activeScheduleRoute = null;
 let routeMarkers = [];
+let busTrackingMap = null;
+let busTrackingMarker = null;
+let busTrackingTimer = null;
+let selectedTrackingScheduleId = null;
 
 function initializeRouteMap() {
   const mapElement = document.getElementById("route-map");
@@ -427,8 +431,10 @@ async function renderPublishedSchedules() {
       <article class="request-result">
         <div class="request-top"><strong>${escapeHTML(item.source)} → ${escapeHTML(item.destination)}</strong><span class="status-pill status-approved">PUBLISHED</span></div>
         <p><strong>Time slot:</strong> ${escapeHTML(item.time_slot)}</p>
+        <p><strong>Bus number:</strong> ${escapeHTML(item.bus_number || "Not assigned")} · <strong>Bus name:</strong> ${escapeHTML(item.bus_name || "Not assigned")}</p>
         <p><strong>Planning demand estimate:</strong> ${Number(item.predicted_passengers)} passengers · <strong>Suggested buses:</strong> ${Number(item.buses)}</p>
         <p><strong>Departure proposals:</strong> ${(item.departures || []).map(escapeHTML).join(" · ")}</p>
+        ${item.bus_number ? `<button class="button button-primary" type="button" onclick="trackBus(${Number(item.id)})">Track this bus</button>` : '<p class="small-note">Bus number and driver have not been assigned yet.</p>'}
         ${item.admin_note ? `<p class="admin-note">SmartRoute AI: ${escapeHTML(item.admin_note)}</p>` : ""}
         <p class="small-note">Admin-approved prototype schedule. Confirm with the bus operator before travelling.</p>
       </article>`).join("");
@@ -436,6 +442,57 @@ async function renderPublishedSchedules() {
     container.innerHTML = '<p class="error-message">Unable to load published schedules. Make sure the SQLite backend is running.</p>';
   }
 }
+
+async function trackBus(scheduleId) {
+  selectedTrackingScheduleId = Number(scheduleId);
+  const section = document.getElementById("bus-tracking-section");
+  if (section) section.scrollIntoView({ behavior: "smooth", block: "start" });
+  if (!window.L) {
+    document.getElementById("bus-tracking-status").textContent = "Map library could not be loaded.";
+    return;
+  }
+  if (!busTrackingMap) {
+    busTrackingMap = L.map("bus-tracking-map").setView([20.5, 78.9], 5);
+    L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      maxZoom: 19,
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+    }).addTo(busTrackingMap);
+  }
+  if (busTrackingTimer) clearInterval(busTrackingTimer);
+  await refreshTrackedBus();
+  busTrackingTimer = setInterval(refreshTrackedBus, 10000);
+}
+
+async function refreshTrackedBus() {
+  if (!selectedTrackingScheduleId) return;
+  const status = document.getElementById("bus-tracking-status");
+  try {
+    const response = await passengerApiFetch("http://127.0.0.1:5001/api/tracking/" + selectedTrackingScheduleId);
+    const result = await response.json();
+    if (!response.ok) throw new Error(result.error || "Could not load bus tracking.");
+    if (result.latitude === null || result.longitude === null) {
+      status.textContent = result.bus_number + " — " + result.bus_name + ": waiting for the driver to start GPS sharing for today's journey.";
+      return;
+    }
+    const position = [Number(result.latitude), Number(result.longitude)];
+    if (!busTrackingMarker) {
+      busTrackingMarker = L.marker(position).addTo(busTrackingMap);
+    } else {
+      busTrackingMarker.setLatLng(position);
+    }
+    busTrackingMarker.bindPopup("<strong>" + escapeHTML(result.bus_number) + " — " + escapeHTML(result.bus_name) + "</strong><br>" + escapeHTML(result.source) + " → " + escapeHTML(result.destination));
+    busTrackingMap.setView(position, Math.max(busTrackingMap.getZoom(), 14));
+    const updated = new Date(result.updated_at.replace(" ", "T"));
+    const ageSeconds = Math.max(0, Math.round((Date.now() - updated.getTime()) / 1000));
+    const freshness = ageSeconds > 45 ? "GPS signal is stale" : "GPS updating";
+    status.textContent = result.bus_number + " — " + result.bus_name + " | " + freshness +
+      " | Last update: " + updated.toLocaleTimeString() + " (" + ageSeconds + " sec ago)" +
+      (result.accuracy ? " | Accuracy ±" + Math.round(result.accuracy) + " m" : "");
+  } catch (error) {
+    status.textContent = error.message || "Bus location is currently unavailable.";
+  }
+}
+window.trackBus = trackBus;
 
 async function renderMyRequests() {
   const container = document.getElementById("my-requests");
