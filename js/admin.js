@@ -131,7 +131,7 @@ async function renderAdminDashboard(options = {}) {
   const approved = requests.filter(item => item.status === "APPROVED").length;
 
   document.getElementById("total-requests").textContent = requests.length;
-  document.getElementById("pending-requests").textContent = pending;
+  document.getElementById("pending-requests").textContent = approved;
   document.getElementById("approved-requests").textContent = approved;
   document.getElementById("total-checkins").textContent = checkins.length;
   renderRequests(requests);
