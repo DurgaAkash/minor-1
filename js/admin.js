@@ -47,7 +47,7 @@ async function adminLogin() {
   const message = document.getElementById("admin-login-message");
   message.textContent = "Signing in...";
   try {
-    const response = await fetch("http://127.0.0.1:5001/api/auth/login", {
+    const response = await fetch(window.SMARTROUTE_API_BASE + "/auth/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ username, password })
@@ -88,8 +88,8 @@ async function renderAdminDashboard(options = {}) {
   let checkins = [];
   try {
     const responses = await Promise.all([
-      adminApiFetch("http://127.0.0.1:5001/api/requests"),
-      adminApiFetch("http://127.0.0.1:5001/api/checkins")
+      adminApiFetch(`${window.SMARTROUTE_API_BASE}/requests"),
+      adminApiFetch(`${window.SMARTROUTE_API_BASE}/checkins")
     ]);
     const endpoints = ["/api/requests", "/api/checkins"];
     const failures = await Promise.all(responses.map(async (response, index) => {
@@ -157,7 +157,7 @@ async function renderServerAgentHistory() {
   const box = document.getElementById("agent-recommendations");
   if (!box) return;
   try {
-    const response = await adminApiFetch("http://127.0.0.1:5001/api/agent/runs");
+    const response = await adminApiFetch(`${window.SMARTROUTE_API_BASE}/agent/runs");
     if (!response.ok) throw new Error("Agent history is unavailable.");
     const runs = await response.json();
     const runCount = document.getElementById("approved-requests");
@@ -464,7 +464,7 @@ async function renderSchedulePlans(recommendations) {
   try {
     // The backend agent owns proposals for routes triggered by live passenger
     // activity. Do not overwrite those values or an admin's decision from the UI.
-    const existingResponse = await adminApiFetch("http://127.0.0.1:5001/api/schedules");
+    const existingResponse = await adminApiFetch(`${window.SMARTROUTE_API_BASE}/schedules");
     if (!existingResponse.ok) throw new Error("Could not load existing schedule proposals.");
     const existingPlans = await existingResponse.json();
     const existingKeys = new Set(existingPlans.map(plan =>
@@ -479,7 +479,7 @@ async function renderSchedulePlans(recommendations) {
         { length: item.busesRequired },
         (_, index) => scheduleClock(start + index * 30)
       );
-      const response = await adminApiFetch("http://127.0.0.1:5001/api/schedules", {
+      const response = await adminApiFetch(`${window.SMARTROUTE_API_BASE}/schedules", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -496,7 +496,7 @@ async function renderSchedulePlans(recommendations) {
       existingKeys.add(key);
     }
 
-    const response = await adminApiFetch("http://127.0.0.1:5001/api/schedules");
+    const response = await adminApiFetch(`${window.SMARTROUTE_API_BASE}/schedules");
     if (!response.ok) throw new Error("Could not load saved schedule proposals.");
     const plans = await response.json();
     localStorage.setItem(ADMIN_KEYS.schedules, JSON.stringify(plans));
@@ -543,7 +543,7 @@ async function assignBus(scheduleId) {
     return;
   }
   try {
-    const response = await adminApiFetch("http://127.0.0.1:5001/api/schedules/" + scheduleId + "/bus", {
+    const response = await adminApiFetch(`${window.SMARTROUTE_API_BASE}/schedules/" + scheduleId + "/bus", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ bus_number, bus_name })
@@ -566,7 +566,7 @@ async function updateScheduleStatus(scheduleId, action) {
   const note = document.getElementById("schedule-note-" + scheduleId);
   const status = action === "approve" ? "APPROVED" : "REJECTED";
   try {
-    const response = await adminApiFetch("http://127.0.0.1:5001/api/schedules/" + encodeURIComponent(scheduleId), {
+    const response = await adminApiFetch(`${window.SMARTROUTE_API_BASE}/schedules/" + encodeURIComponent(scheduleId), {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ status, admin_note: note ? note.value.trim() : "" })
@@ -683,7 +683,7 @@ async function updateRequest(requestId, action) {
   const note = document.getElementById("note-" + requestId);
   const status = action === "approve" ? "APPROVED" : "REJECTED";
   try {
-    const response = await adminApiFetch("http://127.0.0.1:5001/api/requests/" + encodeURIComponent(requestId), {
+    const response = await adminApiFetch(`${window.SMARTROUTE_API_BASE}/requests/" + encodeURIComponent(requestId), {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ status, admin_note: note ? note.value.trim() : "" })
@@ -717,7 +717,7 @@ document.getElementById("refresh-analysis").addEventListener("click", async () =
   button.textContent = "Refreshing...";
   try {
     await loadDemandDataset();
-    const agentResponse = await adminApiFetch("http://127.0.0.1:5001/api/agent/analyze", { method: "POST" });
+    const agentResponse = await adminApiFetch(`${window.SMARTROUTE_API_BASE}/agent/analyze", { method: "POST" });
     if (!agentResponse.ok) throw new Error("Server-side demand analysis could not be refreshed.");
     await renderAdminDashboard();
   } finally {
@@ -726,7 +726,7 @@ document.getElementById("refresh-analysis").addEventListener("click", async () =
   }
 });
 document.getElementById("admin-logout").addEventListener("click", async () => {
-  try { await adminApiFetch("http://127.0.0.1:5001/api/auth/logout", { method: "POST" }); }
+  try { await adminApiFetch(`${window.SMARTROUTE_API_BASE}/auth/logout", { method: "POST" }); }
   catch (error) { console.warn("Server sign-out could not be confirmed:", error); }
   localStorage.removeItem(ADMIN_KEYS.user);
   localStorage.removeItem(ADMIN_KEYS.token);
@@ -738,7 +738,7 @@ const savedUser = (() => {
   catch { return null; }
 })();
 if (savedUser && savedUser.role === "admin" && localStorage.getItem(ADMIN_KEYS.token)) {
-  adminApiFetch("http://127.0.0.1:5001/api/auth/me")
+  adminApiFetch(`${window.SMARTROUTE_API_BASE}/auth/me")
     .then(response => { if (!response.ok) throw new Error("Session expired"); return response.json(); })
     .then(result => { if (result.user.role === "admin") showAdminDashboard(); else throw new Error("Wrong role"); })
     .catch(() => {
