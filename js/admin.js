@@ -553,7 +553,7 @@ async function assignBus(scheduleId) {
     await renderSchedulePlans([]);
     const refreshedMessage = document.getElementById("bus-assignment-message-" + scheduleId);
     if (refreshedMessage) {
-      refreshedMessage.textContent = "Operator bus number saved successfully. Live GPS tracking is disabled in this prototype.";
+      refreshedMessage.textContent = "Operator bus number saved successfully.";
       refreshedMessage.className = "form-message success-message";
     }
   } catch (error) {
