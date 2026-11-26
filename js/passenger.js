@@ -447,7 +447,7 @@ async function renderPublishedSchedules() {
         </div>
         <div class="published-ai-metrics">
           <div><strong>${demand}</strong><span>Planning passengers</span></div>
-          <div><strong>${busCount}</strong><span>AI suggested buses</span></div>
+          <div><strong>${busCount}</strong><span>Suggested buses</span></div>
           <div><strong>${escapeHTML(item.time_slot)}</strong><span>Demand time slot</span></div>
         </div>
         <div class="published-ai-basis"><strong>Prediction basis:</strong> ${escapeHTML(basisLabel)}
