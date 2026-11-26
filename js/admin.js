@@ -511,7 +511,7 @@ async function renderSchedulePlans(recommendations) {
         <div class="agent-card fleet-guidance">
           <div class="request-top"><strong>🤖 AI Fleet Allocation</strong><span class="status-pill ${plan.bus_assignment_type === "OPERATOR" ? "status-approved" : "status-available"}">${plan.bus_assignment_type === "OPERATOR" ? "OPERATOR BUS CONFIRMED" : "AI FLEET SLOT ALLOCATED"}</span></div>
           <p><strong>Demand-based requirement:</strong> ${Math.max(1, Number(plan.buses) || 1)} bus(es) for ${Number(plan.predicted_passengers) || 0} estimated passengers, at ${BUS_CAPACITY} seats per bus.</p>
-          ${plan.bus_assignment_type === "OPERATOR" ? '<p>The listed vehicle number was entered by the admin from the operator&#39;s confirmed fleet.</p>' : '<p>AI automatically allocated the internal fleet ID shown above. This is a planning ID, not a government registration number or proof that a physical bus is available. Enter an actual registration number from the transport operator's available fleet below.</p>'}
+          ${plan.bus_assignment_type === "OPERATOR" ? '<p>The listed vehicle number was entered by the admin from the operator&#39;s confirmed fleet.</p>' : '<p>AI automatically allocated the internal fleet ID shown above. This is a planning ID, not a government registration number or proof that a physical bus is available. Enter an actual registration number from the transport operator&#39;s available fleet below.</p>'}
           ${Number(plan.buses) > 1 ? '<p class="small-note">The demand model recommends multiple vehicles. This prototype displays one primary fleet ID per schedule; the bus count and departure proposals represent the total requirement.</p>' : ''}
         </div>
         <div class="bus-assignment-form">
