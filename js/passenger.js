@@ -368,11 +368,10 @@ document.getElementById("request-form").addEventListener("submit", async functio
     destination: cleanText(document.getElementById("request-to").value),
     preferred_time: document.getElementById("request-time").value,
     travel_date: document.getElementById("request-date").value,
-    expected_passengers: Number(document.getElementById("request-count").value),
-    reason: cleanText(document.getElementById("request-reason").value)
+    expected_passengers: Number(document.getElementById("request-count").value)
   };
 
-  if (!request.source || !request.destination || request.source.toLowerCase() === request.destination.toLowerCase() || !request.travel_date || !request.preferred_time || request.expected_passengers < 1 || !request.reason) {
+  if (!request.source || !request.destination || request.source.toLowerCase() === request.destination.toLowerCase() || !request.travel_date || !request.preferred_time || request.expected_passengers < 1) {
     showMessage("request-message", "Please complete all fields with valid locations and passenger count.", true);
     return;
   }
