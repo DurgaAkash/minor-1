@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Driver GPS | SmartRoute AI</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand" href="index.html">🚌 SmartRoute AI</a>
+    <nav class="main-nav"><a href="passenger.html">Passenger Portal</a><a href="admin.html">Admin Portal</a></nav>
+  </header>
+  <main class="section login-section">
+    <section class="login-card">
+      <div class="assistant-icon">📍</div>
+      <h3>Driver GPS Sharing</h3>
+      <p class="muted-text">Enter the schedule ID and private driver PIN provided by the admin. Keep this page open during the journey.</p>
+      <label for="tracking-schedule-id">Schedule ID</label>
+      <input id="tracking-schedule-id" type="number" min="1" required placeholder="Schedule ID">
+      <label for="tracking-pin">Private driver PIN</label>
+      <input id="tracking-pin" type="password" inputmode="numeric" autocomplete="off" required placeholder="8-digit PIN">
+      <button class="button button-primary full-button" id="start-tracking" type="button">Start sharing GPS</button>
+      <button class="button button-danger full-button" id="stop-tracking" type="button" disabled>Stop sharing GPS</button>
+      <p id="driver-tracking-message" class="form-message" aria-live="polite">GPS sharing is stopped.</p>
+      <p class="demo-warning">Requirements: use a phone with GPS enabled, allow location permission, keep internet connected, and use HTTPS when hosted online. Do not share your PIN with passengers.</p>
+    </section>
+  </main>
+  <script src="js/driver.js"></script>
+</body>
+</html>
