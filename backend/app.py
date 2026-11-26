@@ -273,6 +273,19 @@ def run_agent_analysis(source, destination, time_slot, trigger_type="request"):
           departures = excluded.departures,
           updated_at = CURRENT_TIMESTAMP
     """, (route_key, source, destination, time_slot, planning_demand, buses, departures))
+    saved_schedule = conn.execute(
+        "SELECT status, predicted_passengers, buses FROM schedules WHERE route_key = ?",
+        (route_key,)
+    ).fetchone()
+    if saved_schedule["status"] == "APPROVED" and saved_schedule["buses"] * BUS_CAPACITY >= planning_demand:
+        conn.execute("""
+            UPDATE requests SET status = 'APPROVED',
+              admin_note = 'Covered by the currently approved schedule.'
+            WHERE lower(trim(source)) = lower(trim(?))
+              AND lower(trim(destination)) = lower(trim(?))
+              AND lower(trim(preferred_time)) = lower(trim(?))
+              AND status = 'PENDING'
+        """, (source, destination, time_slot))
     cursor = conn.execute("""
         INSERT INTO agent_runs
           (trigger_type, source, destination, time_slot, ml_forecast, planning_demand, buses, data_basis, explanation)
@@ -523,6 +536,18 @@ def review_schedule(schedule_id):
         conn.close()
         return jsonify({"error": "Schedule proposal not found."}), 404
     row = conn.execute("SELECT * FROM schedules WHERE id = ?", (schedule_id,)).fetchone()
+    linked_request_status = "APPROVED" if status == "APPROVED" else "REJECTED"
+    linked_note = admin_note or (
+        "Related schedule approved and published." if status == "APPROVED"
+        else "Related schedule proposal rejected by admin."
+    )
+    conn.execute("""
+        UPDATE requests SET status = ?, admin_note = ?
+        WHERE lower(trim(source)) = lower(trim(?))
+          AND lower(trim(destination)) = lower(trim(?))
+          AND lower(trim(preferred_time)) = lower(trim(?))
+          AND status = 'PENDING'
+    """, (linked_request_status, linked_note, row["source"], row["destination"], row["time_slot"]))
     conn.commit()
     conn.close()
     result = dict(row)
