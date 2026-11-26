@@ -363,11 +363,12 @@ document.getElementById("request-form").addEventListener("submit", async functio
     source: cleanText(document.getElementById("request-from").value),
     destination: cleanText(document.getElementById("request-to").value),
     preferred_time: document.getElementById("request-time").value,
+    travel_date: document.getElementById("request-date").value,
     expected_passengers: Number(document.getElementById("request-count").value),
     reason: cleanText(document.getElementById("request-reason").value)
   };
 
-  if (!request.source || !request.destination || request.source.toLowerCase() === request.destination.toLowerCase() || request.expected_passengers < 1 || !request.reason) {
+  if (!request.source || !request.destination || request.source.toLowerCase() === request.destination.toLowerCase() || !request.travel_date || !request.preferred_time || request.expected_passengers < 1 || !request.reason) {
     showMessage("request-message", "Please complete all fields with valid locations and passenger count.", true);
     return;
   }
@@ -390,6 +391,7 @@ document.getElementById("request-form").addEventListener("submit", async functio
   }
   this.reset();
   document.getElementById("request-count").value = 1;
+  setDefaultRequestDate();
   renderMyRequests();
 });
 
@@ -449,7 +451,7 @@ async function renderMyRequests() {
       <article class="request-result">
         <div class="request-top"><strong>Request #${item.id}</strong><span class="status-pill ${item.status === "APPROVED" ? "status-approved" : item.status === "REJECTED" ? "status-rejected" : "status-available"}">${escapeHTML(item.status === "APPROVED" ? "AI AUTO-APPROVED" : item.status === "PENDING" ? "AI ANALYSIS" : item.status)}</span></div>
         <p>${escapeHTML(item.source)} → ${escapeHTML(item.destination)}</p>
-        <p class="small-note">${escapeHTML(item.preferred_time)} · ${item.expected_passengers} passenger(s)</p>
+        <p class="small-note">${item.travel_date ? new Date(item.travel_date + "T00:00:00").toLocaleDateString(undefined, { weekday: "long", year: "numeric", month: "short", day: "numeric" }) : "Date not specified"} · ${escapeHTML(item.preferred_time)} · ${item.expected_passengers} passenger(s)</p>
         ${item.admin_note ? `<p class="admin-note">Admin: ${escapeHTML(item.admin_note)}</p>` : ""}
       </article>`).join("");
   } catch (error) {
@@ -471,7 +473,33 @@ async function logoutPassenger() {
   window.location.href = "login.html";
 }
 
-document.getElementById("route-date").min = new Date().toISOString().split("T")[0];
+function localDateString(date = new Date()) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return year + "-" + month + "-" + day;
+}
+
+function setDefaultRequestDate() {
+  const input = document.getElementById("request-date");
+  if (!input) return;
+  input.min = localDateString();
+  if (!input.value) input.value = localDateString();
+  updateRequestDayLabel();
+}
+
+function updateRequestDayLabel() {
+  const input = document.getElementById("request-date");
+  const label = document.getElementById("request-day-label");
+  if (!input || !label || !input.value) return;
+  const selected = new Date(input.value + "T00:00:00");
+  label.textContent = "Selected day: " + selected.toLocaleDateString(undefined, { weekday: "long", year: "numeric", month: "long", day: "numeric" });
+}
+
+document.getElementById("request-date").addEventListener("change", updateRequestDayLabel);
+setDefaultRequestDate();
+
+document.getElementById("route-date").min = localDateString();
 document.getElementById("route-date").value = new Date().toISOString().split("T")[0];
 renderMyRequests();
 renderPublishedSchedules();
