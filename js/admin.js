@@ -130,6 +130,30 @@ async function renderAdminDashboard(options = {}) {
     lastAgentInputSignature = agentInputSignature;
     await renderPredictionsAndAgent(checkins, requests);
   }
+  await renderServerAgentHistory();
+}
+
+async function renderServerAgentHistory() {
+  const box = document.getElementById("agent-recommendations");
+  if (!box) return;
+  try {
+    const response = await adminApiFetch("http://127.0.0.1:5001/api/agent/runs");
+    if (!response.ok) throw new Error("Agent history is unavailable.");
+    const runs = await response.json();
+    if (!runs.length) return;
+    const latest = runs.slice(0, 5);
+    box.insertAdjacentHTML("beforeend", '<h3>Automatic server-side agent activity</h3>' +
+      latest.map(run => `
+        <article class="agent-card">
+          <div class="request-top"><strong>${safeText(run.source)} → ${safeText(run.destination)}</strong><span class="status-pill status-available">AUTO ANALYSIS</span></div>
+          <p><strong>Time:</strong> ${safeText(run.time_slot)} · <strong>Planning demand:</strong> ${Number(run.planning_demand)} · <strong>Suggested buses:</strong> ${Number(run.buses)}</p>
+          <p><strong>Data basis:</strong> ${safeText(run.data_basis)}</p>
+          <p>${safeText(run.explanation)}</p>
+          <p class="small-note">Triggered by ${safeText(run.trigger_type)} · ${safeText(run.created_at)}</p>
+        </article>`).join(""));
+  } catch (error) {
+    console.warn("Could not load automatic agent history:", error);
+  }
 }
 
 function renderRequests(requests) {
@@ -598,6 +622,8 @@ document.getElementById("refresh-analysis").addEventListener("click", async () =
   button.textContent = "Refreshing...";
   try {
     await loadDemandDataset();
+    const agentResponse = await adminApiFetch("http://127.0.0.1:5001/api/agent/analyze", { method: "POST" });
+    if (!agentResponse.ok) throw new Error("Server-side demand analysis could not be refreshed.");
     await renderAdminDashboard();
   } finally {
     button.disabled = false;
