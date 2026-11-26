@@ -110,6 +110,7 @@ def initialize_database():
             bus_number TEXT DEFAULT '',
             bus_name TEXT DEFAULT '',
             tracking_pin_hash TEXT DEFAULT '',
+            bus_assignment_type TEXT NOT NULL DEFAULT 'OPERATOR',
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     """)
@@ -146,7 +147,8 @@ def initialize_database():
     for column, definition in (
         ("bus_number", "TEXT DEFAULT ''"),
         ("bus_name", "TEXT DEFAULT ''"),
-        ("tracking_pin_hash", "TEXT DEFAULT ''")
+        ("tracking_pin_hash", "TEXT DEFAULT ''"),
+        ("bus_assignment_type", "TEXT NOT NULL DEFAULT 'OPERATOR'")
     ):
         if column not in schedule_columns:
             conn.execute(f"ALTER TABLE schedules ADD COLUMN {column} {definition}")
@@ -174,6 +176,16 @@ def initialize_database():
         columns = {row["name"] for row in conn.execute(f"PRAGMA table_info({table})")}
         if column not in columns:
             conn.execute(f"ALTER TABLE {table} ADD COLUMN {column} INTEGER REFERENCES users(id)")
+
+    # Allocate stable virtual fleet IDs to existing approved schedules that do not
+    # yet have an operator-confirmed vehicle. These IDs are planning labels only.
+    conn.execute("""
+        UPDATE schedules
+        SET bus_number = 'SRA-AI-' || printf('%04d', id),
+            bus_name = 'AI Fleet Slot',
+            bus_assignment_type = 'AI_VIRTUAL'
+        WHERE status = 'APPROVED' AND COALESCE(trim(bus_number), '') = ''
+    """)
 
     # Demo accounts are intentionally for local evaluation only. Set these
     # environment variables to replace the default passwords before sharing.
@@ -353,9 +365,19 @@ def run_agent_analysis(source, destination, time_slot, trigger_type="request"):
           updated_at = CURRENT_TIMESTAMP
     """, (route_key, source, destination, time_slot, planning_demand, buses, departures))
     saved_schedule = conn.execute(
-        "SELECT status, predicted_passengers, buses FROM schedules WHERE route_key = ?",
+        "SELECT id, status, predicted_passengers, buses, bus_number, bus_assignment_type FROM schedules WHERE route_key = ?",
         (route_key,)
     ).fetchone()
+    # Auto-allocate a non-registrational fleet ID when no real operator bus is linked.
+    # Never replace an operator-confirmed bus number or generate a driver GPS PIN here.
+    if not str(saved_schedule["bus_number"] or "").strip() or saved_schedule["bus_assignment_type"] == "AI_VIRTUAL":
+        virtual_number = f"SRA-AI-{int(saved_schedule['id']):04d}"
+        conn.execute("""
+            UPDATE schedules
+            SET bus_number = ?, bus_name = ?, bus_assignment_type = 'AI_VIRTUAL',
+                tracking_pin_hash = '', updated_at = CURRENT_TIMESTAMP
+            WHERE id = ?
+        """, (virtual_number, f"AI Fleet Slot ({buses} required)", saved_schedule["id"]))
     # Demo-mode agent auto-approval: this publishes a prototype schedule immediately.
     # It is not a real bus-operator confirmation or dispatch authorization.
     conn.execute("""
@@ -676,7 +698,8 @@ def assign_bus(schedule_id):
     conn = get_db()
     cursor = conn.execute("""
         UPDATE schedules
-        SET bus_number = ?, bus_name = ?, tracking_pin_hash = ?, updated_at = CURRENT_TIMESTAMP
+        SET bus_number = ?, bus_name = ?, tracking_pin_hash = ?,
+            bus_assignment_type = 'OPERATOR', updated_at = CURRENT_TIMESTAMP
         WHERE id = ?
     """, (bus_number, bus_name, pin_hash, schedule_id))
     if cursor.rowcount == 0:
@@ -686,7 +709,8 @@ def assign_bus(schedule_id):
     conn.close()
     return jsonify({
         "message": "Bus assigned. Share this one-time setup PIN privately with the driver.",
-        "bus_number": bus_number, "bus_name": bus_name, "driver_pin": pin
+        "bus_number": bus_number, "bus_name": bus_name,
+        "bus_assignment_type": "OPERATOR", "driver_pin": pin
     })
 
 
