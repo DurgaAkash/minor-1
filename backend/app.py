@@ -85,6 +85,7 @@ def initialize_database():
             source TEXT NOT NULL,
             destination TEXT NOT NULL,
             preferred_time TEXT NOT NULL,
+            travel_date TEXT NOT NULL DEFAULT '',
             expected_passengers INTEGER NOT NULL,
             reason TEXT,
             status TEXT DEFAULT 'PENDING',
@@ -122,6 +123,10 @@ def initialize_database():
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     """)
+    request_columns = {row["name"] for row in conn.execute("PRAGMA table_info(requests)")}
+    if "travel_date" not in request_columns:
+        conn.execute("ALTER TABLE requests ADD COLUMN travel_date TEXT NOT NULL DEFAULT ''")
+
     for table, column in (("checkins", "owner_id"), ("requests", "owner_id")):
         columns = {row["name"] for row in conn.execute(f"PRAGMA table_info({table})")}
         if column not in columns:
@@ -426,6 +431,7 @@ def add_request():
     source = str(data.get("source", "")).strip()
     destination = str(data.get("destination", "")).strip()
     preferred_time = str(data.get("preferred_time", "")).strip()
+    travel_date = str(data.get("travel_date", "")).strip()
     reason = str(data.get("reason", "")).strip()
     try:
         expected_passengers = int(data.get("expected_passengers"))
@@ -437,15 +443,20 @@ def add_request():
         valid_time = True
     except ValueError:
         valid_time = preferred_time.casefold() in ("morning", "afternoon", "evening")
-    if not source or not destination or not valid_time or source.casefold() == destination.casefold():
-        return jsonify({"error": "Enter two different locations and a valid suggested departure time."}), 400
+    try:
+        requested_date = datetime.strptime(travel_date, "%Y-%m-%d").date()
+        valid_date = requested_date >= datetime.now().date()
+    except ValueError:
+        valid_date = False
+    if not source or not destination or not valid_time or not valid_date or source.casefold() == destination.casefold():
+        return jsonify({"error": "Enter two different locations, a valid future travel date, and a suggested departure time."}), 400
     if not 1 <= expected_passengers <= 500:
         return jsonify({"error": "Expected passengers must be between 1 and 500."}), 400
     conn = get_db()
     cursor = conn.execute("""
-        INSERT INTO requests (owner_id, source, destination, preferred_time, expected_passengers, reason)
-        VALUES (?, ?, ?, ?, ?, ?)
-    """, (g.current_user["id"], source, destination, preferred_time, expected_passengers, reason))
+        INSERT INTO requests (owner_id, source, destination, preferred_time, travel_date, expected_passengers, reason)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+    """, (g.current_user["id"], source, destination, preferred_time, travel_date, expected_passengers, reason))
     record_id = cursor.lastrowid
     conn.commit()
     conn.close()
