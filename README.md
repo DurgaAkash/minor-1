@@ -1,20 +1,23 @@
 # SmartRoute AI
 ## AI-Based Smart Rural Transportation Planning and Optimization System
 
-A prototype for rural transportation planning and passenger-demand-based schedule recommendations.
+SmartRoute AI is a student prototype for collecting rural passenger demand, estimating demand, and preparing admin-reviewed bus schedule proposals. It uses a JavaScript frontend, a Flask/SQLite API, and a separate Python Random Forest service.
 
-### Current modules
-1. Landing page
-2. Passenger sign-in (demo only)
-3. India-wide road route search using Leaflet, OpenStreetMap, Nominatim and OSRM
-4. Passenger check-ins and service requests stored in SQLite
-5. Admin request review, approval and rejection
-6. Synthetic CSV historical passenger-demand dataset
-7. Random Forest Regression demand prediction using CSV and SQLite check-ins
-8. Explainable demand decision agent combining Random Forest forecasts, pending requests, urgency ranking and capacity estimates
-9. Admin-approved schedules stored in SQLite and displayed on the Passenger Dashboard
+## Implemented modules
+1. Landing page and 13-language selector.
+2. Passenger and admin sign-in backed by the Flask API.
+3. Role-based API access using expiring bearer-token sessions.
+4. Passenger route finder for locations in India using Leaflet, OpenStreetMap, Nominatim and OSRM.
+5. Passenger check-ins and service requests stored in SQLite and linked to the signed-in passenger.
+6. Passenger request history filtered to the signed-in passenger; admin can view all requests.
+7. Random Forest Regression demand prediction using the sample CSV and SQLite check-ins.
+8. Server-side demand decision agent that runs automatically when a passenger submits a request or check-in. It does not depend on the admin dashboard being open.
+9. Explainable agent audit history, including the data basis and fallback explanation.
+10. Admin review of proposed schedules; only approved schedules are visible to passengers.
+11. Automatic passenger status/schedule refresh every 15 seconds.
+12. Automated API tests for login, role permissions, passenger data isolation, automatic agent execution and schedule publishing.
 
-### Project structure
+## Project structure
 ```
 minor-1/
 ├── index.html
@@ -22,9 +25,13 @@ minor-1/
 ├── passenger.html
 ├── admin.html
 ├── data/rural_transport_demand.csv
-├── backend/app.py
-├── ml-service/app.py
-├── ml-service/requirements.txt
+├── backend/
+│   ├── app.py
+│   └── smartroute.db          # created automatically; do not commit
+├── ml-service/
+│   ├── app.py
+│   └── requirements.txt
+├── tests/test_workflow.py
 ├── css/style.css
 └── js/
     ├── main.js
@@ -33,51 +40,77 @@ minor-1/
     └── admin.js
 ```
 
-### Run locally
-1. Pull the latest repository changes and open the project folder in VS Code.
-2. Start the SQLite backend: `python backend/app.py`.
-3. Start the ML service in another terminal: `python ml-service/app.py`.
-4. Start a third terminal and run `python -m http.server 5500`, then open `http://127.0.0.1:5500/index.html`. Keep the backend and ML terminals running.
-5. Passenger demo login: `passenger` / `travel123`.
-6. Admin demo login: `admin` / `admin123`.
+## Run locally (Windows PowerShell)
 
-### India-wide road route search
-- Enter starting points and destinations anywhere in India.
-- Nominatim geocodes locations and OSRM calculates an estimated road route, distance and driving duration.
-- This does not provide verified bus operators, fares, schedules, seat availability or live GPS tracking.
-- Public map services may apply usage limits; follow their policies for prototype use and arrange a suitable provider for production.
+Open the repository folder in VS Code. Run each service in a separate terminal and keep all three terminals open.
 
-### Demand prediction
-- The Python service trains a Random Forest Regression model from the project CSV plus daily totals from SQLite passenger check-ins.
+### 1. Install dependencies
+```powershell
+python -m pip install flask flask-cors
+python -m pip install -r ml-service/requirements.txt
+```
+
+### 2. Start the Flask/SQLite API
+```powershell
+python backend/app.py
+```
+The API runs at `http://127.0.0.1:5001`. The SQLite database and demo accounts are initialized automatically.
+
+### 3. Start the Random Forest service
+```powershell
+python ml-service/app.py
+```
+The ML service runs at `http://127.0.0.1:5000`.
+
+### 4. Start the frontend
+```powershell
+python -m http.server 5500
+```
+Open `http://127.0.0.1:5500/index.html`.
+
+### Local demo accounts
+- Passenger: `passenger` / `travel123`
+- Admin: `admin` / `admin123`
+
+These are local demonstration credentials only. Change them before sharing the application. Set the environment variables before the first backend start so the database seeds the replacement accounts:
+```powershell
+$env:SMARTROUTE_PASSENGER_PASSWORD = "replace-with-a-strong-passenger-password"
+$env:SMARTROUTE_ADMIN_PASSWORD = "replace-with-a-strong-admin-password"
+python backend/app.py
+```
+Optional username variables: `SMARTROUTE_PASSENGER_USERNAME` and `SMARTROUTE_ADMIN_USERNAME`. If demo users already exist in `backend/smartroute.db`, changing environment variables alone does not reset their stored password hashes. For a fresh local demo database, stop the backend and back up/remove `backend/smartroute.db` before restarting; this deletes the locally stored demo records.
+
+## Passenger-to-admin workflow
+1. Passenger signs in and submits a check-in or bus service request.
+2. The backend stores the record with the passenger's account ID.
+3. The backend immediately runs the server-side demand decision agent. The admin page does not need to be open.
+4. The agent creates or updates a PENDING schedule proposal and records its evidence/explanation.
+5. Admin signs in and reviews the proposed schedule.
+6. Admin approves or rejects it and can add a decision note.
+7. Only APPROVED schedules are returned to the passenger portal. The passenger's request list contains only their own submissions.
+8. Passenger portal refreshes request status and approved schedules approximately every 15 seconds.
+
+## Demand prediction and agent logic
+- The Random Forest service trains from the project CSV plus daily totals from SQLite check-ins.
 - Features include route, time slot, recent passenger counts, rolling average and day of week.
-- The included CSV is synthetic sample data, not official APSRTC or government data. SQLite records are user-entered prototype check-ins.
-- The small dataset is not sufficient for reliable real-world forecasts; add verified records covering more dates, routes, holidays and seasonal variation.
+- When the model returns an exact source/destination/time match, the agent combines that forecast with 50% of pending-request passenger count as an additional planning signal.
+- When there is no exact model match or the ML service is unavailable, the agent uses observed check-ins and pending requests as a fallback. It labels this as an observed-data fallback and does not call it an ML prediction.
+- Suggested bus count is `ceil(planning demand / 50)`, using an assumed capacity of 50 passengers per bus.
+- Departure times are illustrative 30-minute intervals starting at 7:00 AM, 12:00 PM or 5:00 PM based on the selected time slot.
+- Admin approval is always required before a proposed schedule is published.
 
-### Demand prediction decision agent
-- Random Forest estimates next-day passenger demand for each route and time slot.
-- A separate decision layer combines the forecast with pending requests, estimates buses using an assumed capacity of 50, ranks urgency and explains each recommendation.
-- Check-ins are displayed as supporting evidence but are not added again because they already feed the ML training data.
-- Data confidence labels reflect the number of historical route records; they are simple indicators, not statistical confidence intervals.
-- The agent proposes actions only. An admin must approve or reject schedule proposals before passengers can see them.
+## Data, map and prototype limitations
+- The included CSV is synthetic sample data, not official APSRTC, government or operator data.
+- The small sample dataset is not sufficient for reliable real-world forecasting. Add verified historical records across more dates, routes, holidays and seasonal periods before using predictions operationally.
+- The 50-passenger bus capacity and 30-minute departure intervals are assumptions, not verified fleet or operator information.
+- Nominatim and OSRM provide geocoding and road-route estimates. They do not confirm bus operators, fares, service availability, seat availability or live GPS positions. Follow public map-service usage policies.
+- SQLite is local to the computer running the backend; it is not cloud-hosted.
+- Authentication now uses server-verified password hashes, role checks and expiring bearer tokens, but the default accounts are demo credentials. This remains a local academic prototype: add HTTPS, rate limiting, secure deployment secrets, backups, monitoring and a production identity/session strategy before public deployment.
+- Existing rows from older database versions may have no passenger owner ID. Admin can still see them, but they are not shown as a passenger's personal history.
 
-### Schedule approval and publishing
-- Predicted demand is converted to an estimated bus count using an assumed capacity of 50 passengers per bus.
-- Departure proposals use illustrative 30-minute intervals starting at 7:00 AM, 12:00 PM or 5:00 PM according to the time slot.
-- Admin can approve or reject proposals and add a note.
-- Approved schedules are saved in SQLite and shown under Published Bus Schedules on the Passenger Dashboard.
-- These are prototype proposals, not confirmed operator timetables. Confirm actual service details with the bus operator before travel.
-
-### Important prototype limitations
-- Passenger and admin demo credentials are not secure authentication.
-- SQLite is stored on the computer running the backend; it is not cloud-hosted.
-- Passenger request listing is currently a prototype-wide list and is not filtered by authenticated passenger identity.
-- Bus capacity is an assumption; real planning must account for travel duration, vehicle/driver availability, depot constraints and verified demand.
-- The map displays road routing, not live bus GPS tracking.
-- Use Live Server or another local HTTP server rather than opening HTML files directly.
-
-
-### Passenger-to-admin workflow tests
-- Install backend dependencies if needed: `python -m pip install flask flask-cors`.
-- From the repository root, run: `python -m unittest discover -s tests -v`.
-- The tests use a temporary SQLite database and cover passenger request submission, admin visibility, approval/rejection, passenger status refresh data and invalid decisions. They do not modify the development database.
-- Browser workflow checklist: submit a passenger request; confirm it appears in Admin → Passenger Service Requests; approve it with a note; wait up to 15 seconds or refresh the Passenger Dashboard; confirm the status and admin note appear under My Requests.
+## Automated tests
+Install Flask dependencies, then run from the repository root:
+```powershell
+python -m unittest discover -s tests -v
+```
+The tests use a temporary database and do not modify the local development database.
