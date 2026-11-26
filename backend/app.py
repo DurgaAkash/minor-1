@@ -693,113 +693,24 @@ def assign_bus(schedule_id):
     bus_name = str(data.get("bus_name", "")).strip()[:60]
     if not bus_number or not bus_name:
         return jsonify({"error": "Enter both a bus number and bus name."}), 400
-    pin = str(secrets.randbelow(90000000) + 10000000)
-    pin_hash = hashlib.sha256(pin.encode("utf-8")).hexdigest()
     conn = get_db()
     cursor = conn.execute("""
         UPDATE schedules
-        SET bus_number = ?, bus_name = ?, tracking_pin_hash = ?,
+        SET bus_number = ?, bus_name = ?, tracking_pin_hash = '',
             bus_assignment_type = 'OPERATOR', updated_at = CURRENT_TIMESTAMP
         WHERE id = ?
-    """, (bus_number, bus_name, pin_hash, schedule_id))
+    """, (bus_number, bus_name, schedule_id))
     if cursor.rowcount == 0:
         conn.close()
         return jsonify({"error": "Schedule not found."}), 404
     conn.commit()
     conn.close()
     return jsonify({
-        "message": "Bus assigned. Share this one-time setup PIN privately with the driver.",
+        "message": "Operator bus number saved. Live GPS tracking is disabled.",
         "bus_number": bus_number, "bus_name": bus_name,
-        "bus_assignment_type": "OPERATOR", "driver_pin": pin
+        "bus_assignment_type": "OPERATOR"
     })
 
-
-@app.post("/api/tracking/location")
-def update_bus_location():
-    data = request.get_json(silent=True) or {}
-    try:
-        schedule_id = int(data.get("schedule_id"))
-        latitude = float(data.get("latitude"))
-        longitude = float(data.get("longitude"))
-        accuracy = float(data.get("accuracy")) if data.get("accuracy") is not None else None
-        speed = float(data.get("speed")) if data.get("speed") is not None else None
-        heading = float(data.get("heading")) if data.get("heading") is not None else None
-    except (TypeError, ValueError):
-        return jsonify({"error": "Invalid schedule ID or GPS coordinates."}), 400
-    pin = str(data.get("pin", "")).strip()
-    travel_date = str(data.get("travel_date") or datetime.now().date().isoformat()).strip()
-    try:
-        parsed_date = datetime.strptime(travel_date, "%Y-%m-%d").date()
-    except ValueError:
-        return jsonify({"error": "Invalid tracking date."}), 400
-    if parsed_date != datetime.now().date():
-        return jsonify({"error": "GPS tracking can only be shared for today's journey."}), 400
-    if not pin or not (-90 <= latitude <= 90) or not (-180 <= longitude <= 180):
-        return jsonify({"error": "A valid driver PIN and GPS position are required."}), 400
-    if accuracy is not None and not (0 <= accuracy <= 100000):
-        return jsonify({"error": "Invalid GPS accuracy."}), 400
-
-    conn = get_db()
-    schedule = conn.execute(
-        "SELECT id, status, tracking_pin_hash FROM schedules WHERE id = ?", (schedule_id,)
-    ).fetchone()
-    supplied_hash = hashlib.sha256(pin.encode("utf-8")).hexdigest()
-    if schedule is None or schedule["status"] != "APPROVED" or not schedule["tracking_pin_hash"] or not secrets.compare_digest(schedule["tracking_pin_hash"], supplied_hash):
-        conn.close()
-        return jsonify({"error": "Invalid driver PIN or unavailable schedule."}), 403
-    conn.execute("""
-        INSERT INTO bus_locations
-          (schedule_id, travel_date, latitude, longitude, accuracy, speed, heading, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
-        ON CONFLICT(schedule_id, travel_date) DO UPDATE SET
-          latitude = excluded.latitude, longitude = excluded.longitude,
-          accuracy = excluded.accuracy, speed = excluded.speed,
-          heading = excluded.heading, updated_at = CURRENT_TIMESTAMP
-    """, (schedule_id, travel_date, latitude, longitude, accuracy, speed, heading))
-    conn.commit()
-    conn.close()
-    return jsonify({"message": "Bus location updated.", "updated": True})
-
-
-@app.delete("/api/tracking/location")
-def stop_bus_location():
-    data = request.get_json(silent=True) or {}
-    try:
-        schedule_id = int(data.get("schedule_id"))
-    except (TypeError, ValueError):
-        return jsonify({"error": "Invalid schedule ID."}), 400
-    pin = str(data.get("pin", "")).strip()
-    travel_date = str(data.get("travel_date") or datetime.now().date().isoformat()).strip()
-    conn = get_db()
-    schedule = conn.execute(
-        "SELECT tracking_pin_hash FROM schedules WHERE id = ?", (schedule_id,)
-    ).fetchone()
-    supplied_hash = hashlib.sha256(pin.encode("utf-8")).hexdigest()
-    if schedule is None or not schedule["tracking_pin_hash"] or not secrets.compare_digest(schedule["tracking_pin_hash"], supplied_hash):
-        conn.close()
-        return jsonify({"error": "Invalid driver PIN."}), 403
-    conn.execute("DELETE FROM bus_locations WHERE schedule_id = ? AND travel_date = ?", (schedule_id, travel_date))
-    conn.commit()
-    conn.close()
-    return jsonify({"message": "Bus tracking stopped."})
-
-
-@app.get("/api/tracking/<int:schedule_id>")
-@require_role("passenger", "admin")
-def get_bus_location(schedule_id):
-    conn = get_db()
-    row = conn.execute("""
-        SELECT s.id AS schedule_id, s.source, s.destination, s.bus_number, s.bus_name,
-               l.latitude, l.longitude, l.accuracy, l.speed, l.heading, l.updated_at
-        FROM schedules s
-        LEFT JOIN bus_locations l ON l.schedule_id = s.id
-          AND l.travel_date = ?
-        WHERE s.id = ? AND s.status = 'APPROVED'
-    """, (datetime.now().date().isoformat(), schedule_id)).fetchone()
-    conn.close()
-    if row is None:
-        return jsonify({"error": "Published schedule not found."}), 404
-    return jsonify(dict(row))
 
 
 @app.get("/api/agent/runs")
