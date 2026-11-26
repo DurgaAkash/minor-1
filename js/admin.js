@@ -511,7 +511,7 @@ async function renderSchedulePlans(recommendations) {
         <div class="agent-card fleet-guidance">
           <div class="request-top"><strong>🤖 AI Fleet Allocation</strong><span class="status-pill ${plan.bus_assignment_type === "OPERATOR" ? "status-approved" : "status-available"}">${plan.bus_assignment_type === "OPERATOR" ? "OPERATOR BUS CONFIRMED" : "AI FLEET SLOT ALLOCATED"}</span></div>
           <p><strong>Demand-based requirement:</strong> ${Math.max(1, Number(plan.buses) || 1)} bus(es) for ${Number(plan.predicted_passengers) || 0} estimated passengers, at ${BUS_CAPACITY} seats per bus.</p>
-          ${plan.bus_assignment_type === "OPERATOR" ? '<p>The listed vehicle was entered by the admin as an operator-confirmed bus. GPS can be enabled after driver PIN setup.</p>' : '<p>AI automatically allocated the internal fleet ID shown above. This is a planning ID, not a government registration number or proof that a physical bus is available. Confirm the actual vehicle with the operator below to enable GPS tracking.</p>'}
+          ${plan.bus_assignment_type === "OPERATOR" ? '<p>The listed vehicle number was entered by the admin from the operator's confirmed fleet.</p>' : '<p>AI automatically allocated the internal fleet ID shown above. This is a planning ID, not a government registration number or proof that a physical bus is available. Enter an actual registration number from the transport operator's available fleet below.</p>'}
           ${Number(plan.buses) > 1 ? '<p class="small-note">The demand model recommends multiple vehicles. This prototype displays one primary fleet ID per schedule; the bus count and departure proposals represent the total requirement.</p>' : ''}
         </div>
         <div class="bus-assignment-form">
@@ -519,7 +519,7 @@ async function renderSchedulePlans(recommendations) {
           <input id="bus-number-${plan.id}" maxlength="30" placeholder="e.g. TN 01 AB 1234" value="${plan.bus_assignment_type === "OPERATOR" ? safeText(plan.bus_number || "") : ""}">
           <label for="bus-name-${plan.id}">Bus name</label>
           <input id="bus-name-${plan.id}" maxlength="60" placeholder="e.g. Village Express" value="${safeText(plan.bus_name || "")}">
-          <button class="button button-secondary" type="button" onclick="assignBus(${Number(plan.id)})">Assign bus & generate driver PIN</button>
+          <button class="button button-secondary" type="button" onclick="assignBus(${Number(plan.id)})">Save operator bus number</button>
           <p id="bus-assignment-message-${plan.id}" class="form-message" aria-live="polite"></p>
         </div>
         <p class="small-note">Illustrative 30-minute intervals only; not verified operator timetables.</p>
@@ -553,8 +553,7 @@ async function assignBus(scheduleId) {
     await renderSchedulePlans([]);
     const refreshedMessage = document.getElementById("bus-assignment-message-" + scheduleId);
     if (refreshedMessage) {
-      refreshedMessage.innerHTML = "Bus assigned. Driver PIN (share privately): <strong>" + safeText(result.driver_pin) +
-        "</strong><br><a href='driver.html' target='_blank' rel='noopener'>Open Driver GPS page</a>. This PIN is shown only now; assign again to generate a replacement.";
+      refreshedMessage.textContent = "Operator bus number saved successfully. Live GPS tracking is disabled in this prototype.";
       refreshedMessage.className = "form-message success-message";
     }
   } catch (error) {
