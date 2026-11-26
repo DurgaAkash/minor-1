@@ -366,7 +366,7 @@ async function renderPredictionsAndAgent(checkins, requests) {
     const planningDemand = Math.max(0, Math.ceil(
       hasModelForecast
         ? item.forecast + pendingRequests * 0.5
-        : item.forecast + pendingRequests + liveCheckins
+        : Math.max(pendingRequests, liveCheckins)
     ));
     const busesRequired = Math.max(1, Math.ceil(planningDemand / BUS_CAPACITY));
     const extraBuses = Math.max(0, busesRequired - 1);
