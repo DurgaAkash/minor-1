@@ -35,10 +35,26 @@
         <div class="sidebar-help"><strong>Need a better service?</strong><p>Submit a passenger request and track its approval status here.</p></div>
       </aside>
       <div class="passenger-main-content">
-    <div id="passenger-overview" class="dashboard-welcome sidebar-page">
-      <div><span class="eyebrow" data-i18n="passengerPortal">PASSENGER PORTAL</span><h1 data-i18n="planJourney">Plan your journey</h1><p data-i18n="passengerIntro">Find a route, record your travel demand, or request a better bus service.</p></div>
-      <div class="welcome-icon">🚌</div>
-    </div>
+    <section id="passenger-overview" class="dashboard-welcome sidebar-page">
+      <div class="overview-intro">
+        <span class="eyebrow" data-i18n="passengerPortal">PASSENGER PORTAL</span>
+        <h1>SmartRoute AI – Smarter Rural Travel</h1>
+        <p>SmartRoute AI is a data-driven rural transportation planning system designed to help passengers find journeys, communicate travel demand and request better bus services. It brings passenger information and transport planning together in one place.</p>
+      </div>
+      <div class="welcome-icon" aria-hidden="true">🚌</div>
+      <div class="overview-explainer">
+        <h2>How does SmartRoute AI work?</h2>
+        <p class="overview-summary">Your travel needs become useful information for better route and schedule planning.</p>
+        <div class="overview-steps">
+          <article class="overview-step"><span>01</span><div><h3>Find your journey</h3><p>Enter your starting point, destination and travel date to explore road routes and available timetable information from supported public transport feeds.</p></div></article>
+          <article class="overview-step"><span>02</span><div><h3>Share passenger demand</h3><p>Submit a check-in or request a bus service. Your journey details and expected passenger count help record demand for that route and time.</p></div></article>
+          <article class="overview-step"><span>03</span><div><h3>Demand analysis and prediction</h3><p>The system analyses recorded demand and uses a machine-learning model to estimate future passenger demand where sufficient data is available.</p></div></article>
+          <article class="overview-step"><span>04</span><div><h3>Admin review and planning</h3><p>The transport admin reviews passenger requests and AI-generated route or schedule suggestions, then publishes approved service schedules for passengers.</p></div></article>
+        </div>
+        <div class="overview-highlight"><strong>Project goal</strong><p>Support better-informed rural transport decisions by identifying where and when passengers need bus services, helping reduce long waits and improve connectivity.</p></div>
+        <p class="overview-note">Note: This is a prototype. Predictions and suggested schedules are planning aids, not confirmed operator services. Timetable and live GPS information depends on the coverage and freshness of supported public feeds. Always verify travel details with the transport operator.</p>
+      </div>
+    </section>
 
     <div class="dashboard-grid">
       <section id="route-finder-section" class="dashboard-card sidebar-page">
