@@ -583,7 +583,7 @@ setInterval(() => {
 
 const passengerCloudStatus = document.getElementById("cloud-status");
 if (passengerCloudStatus) {
-  fetch("http://127.0.0.1:5001/api/health")
+  fetch(PASSENGER_API_BASE + "/health")
     .then(response => { if (!response.ok) throw new Error("Backend unavailable"); return response.json(); })
     .then(() => passengerCloudStatus.textContent = "SQLite connected. Passenger check-ins and requests are saved in the local database.")
     .catch(() => passengerCloudStatus.textContent = "SQLite backend is offline. Start python backend/app.py.");
