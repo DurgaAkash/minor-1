@@ -383,7 +383,7 @@ document.getElementById("request-form").addEventListener("submit", async functio
     const analysis = result.agent
       ? ` AI analysis: ${result.agent.planning_demand} planning passengers; ${result.agent.buses} bus(es) suggested. Basis: ${result.agent.data_basis}.`
       : " AI analysis is pending.";
-    showMessage("request-message", "Your bus request #" + result.id + " was saved." + analysis + " Any proposed schedule will be published only after admin approval.");
+    showMessage("request-message", "Your bus request #" + result.id + " was saved. The SmartRoute AI demo agent has automatically analysed and approved the prototype schedule." + analysis + " The schedule is now available under Published Schedules. Confirm actual service with the bus operator before travelling.");
   } catch (error) {
     showMessage("request-message", "Could not submit request. Start the SQLite backend and try again. " + error.message, true);
     return;
@@ -427,7 +427,7 @@ async function renderPublishedSchedules() {
         <p><strong>Time slot:</strong> ${escapeHTML(item.time_slot)}</p>
         <p><strong>Planning demand estimate:</strong> ${Number(item.predicted_passengers)} passengers · <strong>Suggested buses:</strong> ${Number(item.buses)}</p>
         <p><strong>Departure proposals:</strong> ${(item.departures || []).map(escapeHTML).join(" · ")}</p>
-        ${item.admin_note ? `<p class="admin-note">Admin: ${escapeHTML(item.admin_note)}</p>` : ""}
+        ${item.admin_note ? `<p class="admin-note">SmartRoute AI: ${escapeHTML(item.admin_note)}</p>` : ""}
         <p class="small-note">Admin-approved prototype schedule. Confirm with the bus operator before travelling.</p>
       </article>`).join("");
   } catch (error) {
@@ -447,7 +447,7 @@ async function renderMyRequests() {
     }
     container.innerHTML = requests.map(item => `
       <article class="request-result">
-        <div class="request-top"><strong>Request #${item.id}</strong><span class="status-pill ${item.status === "APPROVED" ? "status-approved" : item.status === "REJECTED" ? "status-rejected" : "status-available"}">${escapeHTML(item.status === "PENDING" ? "AWAITING APPROVAL" : item.status)}</span></div>
+        <div class="request-top"><strong>Request #${item.id}</strong><span class="status-pill ${item.status === "APPROVED" ? "status-approved" : item.status === "REJECTED" ? "status-rejected" : "status-available"}">${escapeHTML(item.status === "APPROVED" ? "AI AUTO-APPROVED" : item.status === "PENDING" ? "AI ANALYSIS" : item.status)}</span></div>
         <p>${escapeHTML(item.source)} → ${escapeHTML(item.destination)}</p>
         <p class="small-note">${escapeHTML(item.preferred_time)} · ${item.expected_passengers} passenger(s)</p>
         ${item.admin_note ? `<p class="admin-note">Admin: ${escapeHTML(item.admin_note)}</p>` : ""}
