@@ -91,8 +91,19 @@ async function renderAdminDashboard(options = {}) {
       adminApiFetch("http://127.0.0.1:5001/api/requests"),
       adminApiFetch("http://127.0.0.1:5001/api/checkins")
     ]);
-    if (responses.some(response => !response.ok)) throw new Error("SQLite API request failed.");
+    const endpoints = ["/api/requests", "/api/checkins"];
+    const failures = await Promise.all(responses.map(async (response, index) => {
+      if (response.ok) return null;
+      const payload = await response.clone().json().catch(() => ({}));
+      return endpoints[index] + " returned HTTP " + response.status +
+        (payload.error ? ": " + payload.error : "");
+    }));
+    const failure = failures.find(Boolean);
+    if (failure) throw new Error(failure);
     const [requestRows, checkinRows] = await Promise.all(responses.map(response => response.json()));
+    if (!Array.isArray(requestRows) || !Array.isArray(checkinRows)) {
+      throw new Error("The SQLite API returned an unexpected response. Check backend/app.py.");
+    }
     requests = requestRows.map(row => ({
       id: String(row.id), from: row.source, to: row.destination,
       time: row.preferred_time, passengers: row.expected_passengers,
@@ -108,9 +119,12 @@ async function renderAdminDashboard(options = {}) {
     const status = document.getElementById("cloud-status");
     if (status) status.textContent = "SQLite connected. Passenger data loaded from the database.";
   } catch (error) {
+    console.error("Could not load passenger records from SQLite:", error);
     const status = document.getElementById("cloud-status");
-    if (status) status.textContent = "SQLite backend unavailable. Start python backend/app.py and refresh.";
-    document.getElementById("admin-request-list").innerHTML = '<p class="error-message">Could not load passenger records from SQLite.</p>';
+    if (status) status.textContent = "Passenger data load failed: " + (error.message || "Unknown API error");
+    document.getElementById("admin-request-list").innerHTML =
+      '<p class="error-message">Could not load passenger records: ' +
+      safeText(error.message || "Unknown API error") + '</p>';
     return;
   }
   const pending = requests.filter(item => item.status === "PENDING").length;
