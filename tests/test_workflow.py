@@ -238,6 +238,55 @@ class SmartRouteApiTests(unittest.TestCase):
         self.assertEqual(submitted.get_json()["agent"]["planning_demand"], 40)
         self.assertEqual(submitted.get_json()["agent"]["ml_forecast"], 30.0)
 
+    def test_24_hour_request_time_generates_matching_departure(self):
+        with patch.object(backend_app, "fetch_ml_forecast", return_value=None):
+            submitted = self.client.post(
+                "/api/requests", headers=self.headers(self.passenger_token),
+                json={
+                    "source": "Village Evening", "destination": "Town Evening",
+                    "preferred_time": "17:30", "travel_date": backend_app.datetime.now().date().isoformat(),
+                    "expected_passengers": 3
+                }
+            )
+        self.assertEqual(submitted.status_code, 201)
+        schedules = self.client.get(
+            "/api/schedules?published_only=true",
+            headers=self.headers(self.passenger_token)
+        ).get_json()
+        self.assertEqual(len(schedules), 1)
+        self.assertEqual(schedules[0]["time_slot"], "17:30")
+        self.assertEqual(schedules[0]["departures"], ["05:30 PM"])
+
+    def test_assigned_bus_driver_gps_is_visible_to_passenger(self):
+        with patch.object(backend_app, "fetch_ml_forecast", return_value=None):
+            self.submit_request(self.passenger_token, "GPS Village", "GPS Town", 3)
+        schedule = self.client.get(
+            "/api/schedules", headers=self.headers(self.admin_token)
+        ).get_json()[0]
+        assigned = self.client.patch(
+            f"/api/schedules/{schedule['id']}/bus",
+            headers=self.headers(self.admin_token),
+            json={"bus_number": "TN 01 AB 1234", "bus_name": "Village Express"}
+        )
+        self.assertEqual(assigned.status_code, 200)
+        pin = assigned.get_json()["driver_pin"]
+        gps = self.client.post("/api/tracking/location", json={
+            "schedule_id": schedule["id"], "pin": pin,
+            "travel_date": backend_app.datetime.now().date().isoformat(),
+            "latitude": 13.0827, "longitude": 80.2707, "accuracy": 8
+        })
+        self.assertEqual(gps.status_code, 200)
+        tracking = self.client.get(
+            f"/api/tracking/{schedule['id']}",
+            headers=self.headers(self.passenger_token)
+        )
+        self.assertEqual(tracking.status_code, 200)
+        payload = tracking.get_json()
+        self.assertEqual(payload["bus_number"], "TN 01 AB 1234")
+        self.assertEqual(payload["bus_name"], "Village Express")
+        self.assertAlmostEqual(payload["latitude"], 13.0827)
+        self.assertAlmostEqual(payload["longitude"], 80.2707)
+
     def test_logout_revokes_the_session_token(self):
         response = self.client.post(
             "/api/auth/logout", headers=self.headers(self.passenger_token)
