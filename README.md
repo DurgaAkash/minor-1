@@ -7,7 +7,7 @@ SmartRoute AI is a student prototype for collecting rural passenger demand, esti
 1. Landing page and 13-language selector.
 2. Passenger and admin sign-in backed by the Flask API.
 3. Role-based API access using expiring bearer-token sessions.
-4. Passenger route finder for locations in India using Leaflet, OpenStreetMap, Nominatim and OSRM.
+4. Passenger route finder for locations in India using Leaflet, OpenStreetMap, Nominatim and OSRM.\n5. Pan-India published bus timetable search using state-filtered GTFS Schedule feeds; matching live vehicle positions and trip references are shown only where a realtime feed exists.
 5. Passenger check-ins and service requests stored in SQLite and linked to the signed-in passenger.
 6. Passenger request history filtered to the signed-in passenger; admin can view all requests.
 7. Random Forest Regression demand prediction using the sample CSV and SQLite check-ins.
