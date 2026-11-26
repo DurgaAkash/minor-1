@@ -678,3 +678,68 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; transition-duration: .01ms !important; }
 }
+
+
+/* Full-width selected passenger dashboard page */
+.passenger-layout {
+  width: 100%;
+  grid-template-columns: 248px minmax(0, 1fr);
+  align-items: start;
+}
+.passenger-main-content {
+  width: 100%;
+  min-width: 0;
+}
+.passenger-main-content .dashboard-grid {
+  display: grid;
+  width: 100%;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: stretch;
+}
+.passenger-main-content .sidebar-page {
+  width: 100%;
+  max-width: none;
+  min-width: 0;
+}
+.passenger-main-content .dashboard-card {
+  width: 100%;
+  min-height: 420px;
+  padding: clamp(24px, 3.2vw, 42px);
+}
+.passenger-main-content .dashboard-card form {
+  width: min(100%, 760px);
+}
+.passenger-main-content .dashboard-card .result-area {
+  width: 100%;
+}
+.passenger-main-content #route-map {
+  width: 100%;
+  min-height: min(58vh, 560px);
+}
+.passenger-main-content #route-results-page,
+.passenger-main-content #published-section,
+.passenger-main-content #my-requests-section {
+  min-height: 55vh;
+}
+.passenger-main-content .dashboard-welcome {
+  width: 100%;
+  min-height: 220px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  padding: clamp(30px, 5vw, 64px);
+}
+.passenger-main-content .dashboard-welcome > div:first-child {
+  max-width: 850px;
+}
+@media (max-width: 1050px) {
+  .passenger-layout { grid-template-columns: 215px minmax(0, 1fr); }
+}
+@media (max-width: 760px) {
+  .passenger-layout { grid-template-columns: minmax(0, 1fr); }
+  .passenger-main-content .dashboard-card { min-height: 0; padding: 22px; }
+  .passenger-main-content .dashboard-card form { width: 100%; }
+  .passenger-main-content #route-map { min-height: 380px; }
+  .passenger-main-content .dashboard-welcome { min-height: 180px; }
+}
