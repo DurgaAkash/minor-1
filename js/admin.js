@@ -323,7 +323,8 @@ async function renderPredictionsAndAgent(checkins, requests) {
 
   if (!forecasts.length) {
     predictionBox.innerHTML = '<p class="muted-text">No demand forecast is available. Check the CSV dataset and prediction service.</p>';
-    agentBox.innerHTML = '<p class="muted-text">The recommendation assistant is waiting for demand data.</p>';
+    agentBox.innerHTML = '<p class="muted-text">No ML forecast is available. Server-side request analysis is still active.</p>';
+    await renderSchedulePlans([]);
     return;
   }
 
