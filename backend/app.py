@@ -151,6 +151,21 @@ def initialize_database():
         if column not in schedule_columns:
             conn.execute(f"ALTER TABLE schedules ADD COLUMN {column} {definition}")
 
+    # Repair legacy proposals whose time slot is a 24-hour clock value but
+    # whose departure list was incorrectly defaulted to 07:00 AM.
+    for schedule in conn.execute("SELECT id, time_slot, buses, departures FROM schedules").fetchall():
+        try:
+            datetime.strptime(str(schedule["time_slot"]).strip(), "%H:%M")
+            expected_departures = json.dumps(make_departures(schedule["time_slot"], schedule["buses"]))
+            current_departures = json.dumps(json.loads(schedule["departures"]))
+        except (TypeError, ValueError, json.JSONDecodeError):
+            continue
+        if current_departures != expected_departures:
+            conn.execute(
+                "UPDATE schedules SET departures = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
+                (expected_departures, schedule["id"])
+            )
+
     request_columns = {row["name"] for row in conn.execute("PRAGMA table_info(requests)")}
     if "travel_date" not in request_columns:
         conn.execute("ALTER TABLE requests ADD COLUMN travel_date TEXT NOT NULL DEFAULT ''")
@@ -554,7 +569,20 @@ def get_schedules():
             item["departures"] = json.loads(item["departures"])
         except (TypeError, ValueError):
             item["departures"] = []
+        # Keep displayed departures aligned with an exact 24-hour time slot.
+        try:
+            datetime.strptime(str(item["time_slot"]).strip(), "%H:%M")
+            expected = make_departures(item["time_slot"], item["buses"])
+            if item["departures"] != expected:
+                item["departures"] = expected
+                conn.execute(
+                    "UPDATE schedules SET departures = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
+                    (json.dumps(expected), item["id"])
+                )
+        except (TypeError, ValueError):
+            pass
         results.append(item)
+    conn.commit()
     return jsonify(results)
 
 
