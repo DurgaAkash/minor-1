@@ -94,7 +94,7 @@ Optional username variables: `SMARTROUTE_PASSENGER_USERNAME` and `SMARTROUTE_ADM
 - The Random Forest service trains from the project CSV plus daily totals from SQLite check-ins.
 - Features include route, time slot, recent passenger counts, rolling average and day of week.
 - When the model returns an exact source/destination/time match, the agent combines that forecast with 50% of pending-request passenger count as an additional planning signal.
-- When there is no exact model match or the ML service is unavailable, the agent uses observed check-ins and pending requests as a fallback. It labels this as an observed-data fallback and does not call it an ML prediction.
+- When there is no exact model match or the ML service is unavailable, the agent uses the larger of observed check-in passengers and pending-request passengers as a conservative fallback because the prototype cannot identify overlapping people. It labels this as an observed-data fallback and does not call it an ML prediction.
 - Suggested bus count is `ceil(planning demand / 50)`, using an assumed capacity of 50 passengers per bus.
 - Departure times are illustrative 30-minute intervals starting at 7:00 AM, 12:00 PM or 5:00 PM based on the selected time slot.
 - Admin approval is always required before a proposed schedule is published.
