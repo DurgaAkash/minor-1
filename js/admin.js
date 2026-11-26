@@ -2,7 +2,15 @@
 // CSV demand forecasts and recommendations are beginner-friendly demo algorithms.
 // Passenger/admin data is stored in this browser's localStorage.
 
-const ADMIN_KEYS = { requests: "smartrouteRequests", checkins: "smartrouteCheckins", user: "smartrouteUser", schedules: "smartrouteSchedules" };
+const ADMIN_KEYS = { requests: "smartrouteRequests", checkins: "smartrouteCheckins", user: "smartrouteUser", schedules: "smartrouteSchedules", token: "smartrouteToken" };
+
+function adminApiFetch(url, options = {}) {
+  const token = localStorage.getItem(ADMIN_KEYS.token) || "";
+  return fetch(url, {
+    ...options,
+    headers: { ...(options.headers || {}), Authorization: "Bearer " + token }
+  });
+}
 const BUS_CAPACITY = 50;
 let historicalDemand = [];
 let dashboardInitialization = null;
@@ -27,16 +35,26 @@ function safeText(value) {
   })[ch]);
 }
 
-function adminLogin() {
+async function adminLogin() {
   const username = document.getElementById("admin-username").value.trim();
   const password = document.getElementById("admin-password").value;
   const message = document.getElementById("admin-login-message");
-
-  if (username === "admin" && password === "admin123") {
-    localStorage.setItem(ADMIN_KEYS.user, JSON.stringify({ username: "admin", role: "admin" }));
+  message.textContent = "Signing in...";
+  try {
+    const response = await fetch("http://127.0.0.1:5001/api/auth/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username, password })
+    });
+    const result = await response.json();
+    if (!response.ok) throw new Error(result.error || "Sign-in failed.");
+    if (result.user.role !== "admin") throw new Error("This account is not an admin account.");
+    localStorage.setItem(ADMIN_KEYS.token, result.token);
+    localStorage.setItem(ADMIN_KEYS.user, JSON.stringify(result.user));
+    message.textContent = "";
     showAdminDashboard();
-  } else {
-    message.textContent = "Incorrect admin username or password.";
+  } catch (error) {
+    message.textContent = error.message || "Unable to sign in. Check that the backend is running.";
     message.className = "form-message error-message";
   }
 }
@@ -64,8 +82,8 @@ async function renderAdminDashboard(options = {}) {
   let checkins = [];
   try {
     const responses = await Promise.all([
-      fetch("http://127.0.0.1:5001/api/requests"),
-      fetch("http://127.0.0.1:5001/api/checkins")
+      adminApiFetch("http://127.0.0.1:5001/api/requests"),
+      adminApiFetch("http://127.0.0.1:5001/api/checkins")
     ]);
     if (responses.some(response => !response.ok)) throw new Error("SQLite API request failed.");
     const [requestRows, checkinRows] = await Promise.all(responses.map(response => response.json()));
@@ -308,7 +326,12 @@ async function renderPredictionsAndAgent(checkins, requests) {
 
     // Check-ins already feed the ML training data, so do not count them twice.
     // Half of pending request passengers are used as an extra planning signal.
-    const planningDemand = Math.max(0, Math.ceil(item.forecast + pendingRequests * 0.5));
+    // For a route absent from the model, use a clearly labelled observed-data
+    // fallback rather than presenting a zero ML forecast as a prediction.
+    const hasRouteHistory = Number(item.sampleCount) > 0;
+    const planningDemand = Math.max(0, Math.ceil(
+      hasRouteHistory ? item.forecast + pendingRequests * 0.5 : pendingRequests + liveCheckins
+    ));
     const busesRequired = Math.max(1, Math.ceil(planningDemand / BUS_CAPACITY));
     const extraBuses = Math.max(0, busesRequired - 1);
     const utilization = planningDemand / (busesRequired * BUS_CAPACITY);
@@ -382,7 +405,7 @@ async function renderSchedulePlans(recommendations) {
         { length: item.busesRequired },
         (_, index) => scheduleClock(start + index * 30)
       );
-      const response = await fetch("http://127.0.0.1:5001/api/schedules", {
+      const response = await adminApiFetch("http://127.0.0.1:5001/api/schedules", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -398,7 +421,7 @@ async function renderSchedulePlans(recommendations) {
       if (!response.ok) throw new Error(result.error || "Could not save schedule proposal.");
     }
 
-    const response = await fetch("http://127.0.0.1:5001/api/schedules");
+    const response = await adminApiFetch("http://127.0.0.1:5001/api/schedules");
     if (!response.ok) throw new Error("Could not load saved schedule proposals.");
     const plans = await response.json();
     localStorage.setItem(ADMIN_KEYS.schedules, JSON.stringify(plans));
@@ -424,7 +447,7 @@ async function updateScheduleStatus(scheduleId, action) {
   const note = document.getElementById("schedule-note-" + scheduleId);
   const status = action === "approve" ? "APPROVED" : "REJECTED";
   try {
-    const response = await fetch("http://127.0.0.1:5001/api/schedules/" + encodeURIComponent(scheduleId), {
+    const response = await adminApiFetch("http://127.0.0.1:5001/api/schedules/" + encodeURIComponent(scheduleId), {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ status, admin_note: note ? note.value.trim() : "" })
@@ -541,7 +564,7 @@ async function updateRequest(requestId, action) {
   const note = document.getElementById("note-" + requestId);
   const status = action === "approve" ? "APPROVED" : "REJECTED";
   try {
-    const response = await fetch("http://127.0.0.1:5001/api/requests/" + encodeURIComponent(requestId), {
+    const response = await adminApiFetch("http://127.0.0.1:5001/api/requests/" + encodeURIComponent(requestId), {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ status, admin_note: note ? note.value.trim() : "" })
@@ -581,8 +604,11 @@ document.getElementById("refresh-analysis").addEventListener("click", async () =
     button.textContent = "Refresh Dataset & Analysis";
   }
 });
-document.getElementById("admin-logout").addEventListener("click", () => {
+document.getElementById("admin-logout").addEventListener("click", async () => {
+  try { await adminApiFetch("http://127.0.0.1:5001/api/auth/logout", { method: "POST" }); }
+  catch (error) { console.warn("Server sign-out could not be confirmed:", error); }
   localStorage.removeItem(ADMIN_KEYS.user);
+  localStorage.removeItem(ADMIN_KEYS.token);
   window.location.reload();
 });
 
@@ -590,7 +616,15 @@ const savedUser = (() => {
   try { return JSON.parse(localStorage.getItem(ADMIN_KEYS.user) || "null"); }
   catch { return null; }
 })();
-if (savedUser && savedUser.role === "admin") showAdminDashboard();
+if (savedUser && savedUser.role === "admin" && localStorage.getItem(ADMIN_KEYS.token)) {
+  adminApiFetch("http://127.0.0.1:5001/api/auth/me")
+    .then(response => { if (!response.ok) throw new Error("Session expired"); return response.json(); })
+    .then(result => { if (result.user.role === "admin") showAdminDashboard(); else throw new Error("Wrong role"); })
+    .catch(() => {
+      localStorage.removeItem(ADMIN_KEYS.user);
+      localStorage.removeItem(ADMIN_KEYS.token);
+    });
+}
 
 
 // Poll SQLite while the admin dashboard is open. New passenger requests/check-ins
