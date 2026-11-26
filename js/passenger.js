@@ -400,7 +400,7 @@ async function renderPublishedSchedules() {
       <article class="request-result">
         <div class="request-top"><strong>${escapeHTML(item.source)} → ${escapeHTML(item.destination)}</strong><span class="status-pill status-approved">PUBLISHED</span></div>
         <p><strong>Time slot:</strong> ${escapeHTML(item.time_slot)}</p>
-        <p><strong>Estimated demand:</strong> ${Number(item.predicted_passengers)} passengers · <strong>Suggested buses:</strong> ${Number(item.buses)}</p>
+        <p><strong>Planning demand estimate:</strong> ${Number(item.predicted_passengers)} passengers · <strong>Suggested buses:</strong> ${Number(item.buses)}</p>
         <p><strong>Departure proposals:</strong> ${(item.departures || []).map(escapeHTML).join(" · ")}</p>
         ${item.admin_note ? `<p class="admin-note">Admin: ${escapeHTML(item.admin_note)}</p>` : ""}
         <p class="small-note">Admin-approved prototype schedule. Confirm with the bus operator before travelling.</p>
