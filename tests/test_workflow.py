@@ -161,26 +161,14 @@ class SmartRouteApiTests(unittest.TestCase):
         self.assertEqual(submitted.status_code, 201)
         result = submitted.get_json()
         self.assertEqual(result["agent"]["planning_demand"], 24)
-        self.assertEqual(result["schedule_status"], "PENDING_ADMIN_APPROVAL")
+        self.assertEqual(result["schedule_status"], "AUTO_APPROVED_BY_AGENT")
 
         proposals = self.client.get("/api/schedules", headers=self.headers(self.admin_token)).get_json()
         self.assertEqual(len(proposals), 1)
-        self.assertEqual(proposals[0]["status"], "PENDING")
+        self.assertEqual(proposals[0]["status"], "APPROVED")
         self.assertEqual(proposals[0]["predicted_passengers"], 24)
 
-        # Passenger cannot see the proposal until the admin approves it.
-        passenger_schedules = self.client.get(
-            "/api/schedules?published_only=true",
-            headers=self.headers(self.passenger_token)
-        ).get_json()
-        self.assertEqual(passenger_schedules, [])
-
-        approved = self.client.patch(
-            f"/api/schedules/{proposals[0]['id']}",
-            headers=self.headers(self.admin_token),
-            json={"status": "APPROVED", "admin_note": "Schedule approved for demo."}
-        )
-        self.assertEqual(approved.status_code, 200)
+        # The AI demo agent automatically approves and publishes the prototype schedule.
         published = self.client.get(
             "/api/schedules?published_only=true",
             headers=self.headers(self.passenger_token)
@@ -191,7 +179,7 @@ class SmartRouteApiTests(unittest.TestCase):
             "/api/requests", headers=self.headers(self.passenger_token)
         ).get_json()
         self.assertEqual(passenger_requests[0]["status"], "APPROVED")
-        self.assertIn("schedule approved", passenger_requests[0]["admin_note"].lower())
+        self.assertIn("auto-approved", passenger_requests[0]["admin_note"].lower())
 
     def test_checkin_runs_agent_and_is_visible_only_to_admin(self):
         with patch.object(backend_app, "fetch_ml_forecast", return_value=None):
