@@ -25,8 +25,8 @@
         <nav class="sidebar-nav">
           <a class="sidebar-link active" href="#passenger-overview"><span>🏠</span> Overview</a>
           <a class="sidebar-link" href="#route-finder-section"><span>🔎</span> Route Finder</a>
-          <a class="sidebar-link" href="#route-results"><span>🚌</span> Bus Search & Live GPS</a>
-          <a class="sidebar-link" href="#route-map-section"><span>🗺️</span> Route Map</a>
+          <a class="sidebar-link" href="#route-results-page"><span>🚌</span> Bus Search & Live GPS</a>
+          <a class="sidebar-link" href="#route-map-page"><span>🗺️</span> Route Map</a>
           <a class="sidebar-link" href="#checkin-section"><span>📝</span> Passenger Check-in</a>
           <a class="sidebar-link" href="#request-section"><span>📨</span> Request a Bus</a>
           <a class="sidebar-link" href="#published-section"><span>🗓️</span> Published Schedules</a>
@@ -35,13 +35,13 @@
         <div class="sidebar-help"><strong>Need a better service?</strong><p>Submit a passenger request and track its approval status here.</p></div>
       </aside>
       <div class="passenger-main-content">
-    <div id="passenger-overview" class="dashboard-welcome">
+    <div id="passenger-overview" class="dashboard-welcome sidebar-page">
       <div><span class="eyebrow" data-i18n="passengerPortal">PASSENGER PORTAL</span><h1 data-i18n="planJourney">Plan your journey</h1><p data-i18n="passengerIntro">Find a route, record your travel demand, or request a better bus service.</p></div>
       <div class="welcome-icon">🚌</div>
     </div>
 
     <div class="dashboard-grid">
-      <section id="route-finder-section" class="dashboard-card">
+      <section id="route-finder-section" class="dashboard-card sidebar-page">
         <div class="card-heading"><span>🔎</span><div><h2 data-i18n="routeFinder">Route Finder</h2><p data-i18n="routeDescription">Search road routes between locations anywhere in India.</p></div></div>
         <form id="route-form">
           <label for="route-from" data-i18n="fromLabel">From</label><div class="location-autocomplete"><input id="route-from" required autocomplete="off" aria-autocomplete="list" aria-controls="route-from-suggestions" placeholder="e.g. Chennai or Khambhampadu, Andhra Pradesh" data-i18n-placeholder="routeFromPlaceholder"><div id="route-from-suggestions" class="autocomplete-suggestions" role="listbox" hidden></div></div>
@@ -49,13 +49,20 @@
           <label for="route-date" data-i18n="travelDate">Travel date</label><input id="route-date" type="date" required>
           <button class="button button-primary full-button" type="submit" data-i18n="searchRoutes">Search Routes</button>
         </form>
-        <div id="route-results" class="result-area" aria-live="polite"></div>
-        <h3 id="route-map-section" class="map-title" data-i18n="routeMap">Route Map</h3>
+      </section>
+
+      <section id="route-results-page" class="dashboard-card sidebar-page">
+        <div class="card-heading"><span>🚌</span><div><h2>Bus Search & Live GPS</h2><p>Bus timetable results and supported live vehicle positions for your searched journey.</p></div></div>
+        <div id="route-results" class="result-area" aria-live="polite"><p class="muted-text">Search a journey in Route Finder to load matching bus services here.</p></div>
+      </section>
+
+      <section id="route-map-page" class="dashboard-card sidebar-page">
+        <div class="card-heading"><span>🗺️</span><div><h2 id="route-map-section" class="map-title" data-i18n="routeMap">Route Map</h2><p>Road route map for your latest search.</p></div></div>
         <div id="route-map" role="region" aria-label="Map showing searched route"></div>
         <p id="map-message" class="small-note map-message" aria-live="polite" data-i18n="mapPrompt">Search a route to view its location on the map.</p>
       </section>
 
-      <section id="checkin-section" class="dashboard-card">
+      <section id="checkin-section" class="dashboard-card sidebar-page">
         <div class="card-heading"><span>📝</span><div><h2 data-i18n="passengerCheckin">Passenger Check-in</h2><p>Record how many people need this journey.</p></div></div>
         <form id="checkin-form">
           <label for="checkin-from" data-i18n="fromLabel">From</label><input id="checkin-from" required placeholder="Village / town" data-i18n-placeholder="villagePlaceholder">
@@ -67,7 +74,7 @@
         </form>
       </section>
 
-      <section id="request-section" class="dashboard-card">
+      <section id="request-section" class="dashboard-card sidebar-page">
         <div class="card-heading"><span>📨</span><div><h2 data-i18n="requestBus">Request a Bus Service</h2><p data-i18n="requestDescription">Ask the transport admin for a new service or timing change.</p></div></div>
         <form id="request-form">
           <label for="request-from" data-i18n="fromLabel">From</label><input id="request-from" required placeholder="Village / town" data-i18n-placeholder="villagePlaceholder">
@@ -80,12 +87,12 @@
         </form>
       </section>
 
-      <section id="published-section" class="dashboard-card">
+      <section id="published-section" class="dashboard-card sidebar-page">
         <div class="card-heading"><span>🗓️</span><div><h2 data-i18n="publishedSchedules">Published Bus Schedules</h2><p>View schedules approved by the transport admin.</p></div></div>
         <div id="published-schedules" class="result-area"><p class="muted-text">Loading approved schedules...</p></div>
       </section>
 
-      <section id="my-requests-section" class="dashboard-card">
+      <section id="my-requests-section" class="dashboard-card sidebar-page">
         <div class="card-heading"><span>📋</span><div><h2 data-i18n="myRequests">My Requests</h2><p>Check the latest status of your service requests.</p></div></div>
         <div id="my-requests" class="result-area"><p class="muted-text">No requests submitted yet.</p></div>
       </section>
