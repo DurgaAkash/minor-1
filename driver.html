@@ -23,7 +23,7 @@
       <button class="button button-primary full-button" id="start-tracking" type="button">Start sharing GPS</button>
       <button class="button button-danger full-button" id="stop-tracking" type="button" disabled>Stop sharing GPS</button>
       <p id="driver-tracking-message" class="form-message" aria-live="polite">GPS sharing is stopped.</p>
-      <p class="demo-warning">Requirements: use a phone with GPS enabled, allow location permission, keep internet connected, and use HTTPS when hosted online. Do not share your PIN with passengers.</p>
+      <p class="demo-warning">Requirements: use a phone with GPS enabled, allow location permission, keep internet connected, and use HTTPS for phone GPS (browsers block location on ordinary LAN HTTP). For HTTPS hosting, configure /api to forward to Flask. Do not share your PIN with passengers.</p>
     </section>
   </main>
   <script src="js/driver.js"></script>
