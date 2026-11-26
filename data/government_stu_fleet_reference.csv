@@ -1,0 +1,13 @@
+state,transport_operator,reported_bus_fleet_count,source_type,source_publication_date,count_reference_date,notes
+Andhra Pradesh,APSRTC,11696,STU-wise fleet table in Busworld Foundation presentation,2022-12,Not specified in source table,Historical reference count; not a live fleet count
+Karnataka,KSRTC,8820,STU-wise fleet table in Busworld Foundation presentation,2022-12,Not specified in source table,Historical reference count; Karnataka operator label as shown in source
+Kerala,Kerala SRTC,5489,STU-wise fleet table in Busworld Foundation presentation,2022-12,Not specified in source table,Historical reference count; not a live fleet count
+Maharashtra,MSRTC,17900,STU-wise fleet table in Busworld Foundation presentation,2022-12,Not specified in source table,Historical reference count; not a live fleet count
+Telangana,TSRTC,9691,STU-wise fleet table in Busworld Foundation presentation,2022-12,Not specified in source table,Historical reference count; not a live fleet count
+Tamil Nadu,MTC Chennai,3709,STU-wise fleet table in Busworld Foundation presentation,2022-12,Not specified in source table,Historical reference count; source abbreviation MTC-Ch.
+Tamil Nadu,TNSTC Coimbatore,2850,STU-wise fleet table in Busworld Foundation presentation,2022-12,Not specified in source table,Historical reference count; source abbreviation TNSTC-CBE
+Tamil Nadu,TNSTC Kumbakonam,3471,STU-wise fleet table in Busworld Foundation presentation,2022-12,Not specified in source table,Historical reference count; source abbreviation TNSTC-KUMB
+Tamil Nadu,TNSTC Madurai,2166,STU-wise fleet table in Busworld Foundation presentation,2022-12,Not specified in source table,Historical reference count; source abbreviation TNSTC-MDU
+Tamil Nadu,TNSTC Salem,2131,STU-wise fleet table in Busworld Foundation presentation,2022-12,Not specified in source table,Historical reference count; source abbreviation TNSTC-SALEM
+Tamil Nadu,TNSTC Tirunelveli,1762,STU-wise fleet table in Busworld Foundation presentation,2022-12,Not specified in source table,Historical reference count; source abbreviation TNSTC-TNV
+Tamil Nadu,SETC,1164,STU-wise fleet table in Busworld Foundation presentation,2022-12,Not specified in source table,Historical reference count; not a live fleet count
