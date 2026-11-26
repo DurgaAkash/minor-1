@@ -1,0 +1,17 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+env/
+*.env
+.env
+# Local databases and logs
+backend/*.db
+*.sqlite
+*.sqlite3
+*.log
+# Node / editor
+node_modules/
+.DS_Store
+.vscode/
