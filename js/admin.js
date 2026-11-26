@@ -496,12 +496,50 @@ async function renderSchedulePlans(recommendations) {
         <p><strong>Time slot:</strong> ${safeText(plan.time_slot)} · <strong>Planning demand estimate:</strong> ${Number(plan.predicted_passengers)}</p>
         <p><strong>Suggested buses:</strong> ${Number(plan.buses)} (assumed capacity ${BUS_CAPACITY} each)</p>
         <p><strong>Proposed departures:</strong> ${(plan.departures || []).map(safeText).join(" · ")}</p>
+        <p><strong>Assigned bus:</strong> ${plan.bus_number ? safeText(plan.bus_number) + " — " + safeText(plan.bus_name || "") : "Not assigned"}</p>
+        <div class="bus-assignment-form">
+          <label for="bus-number-${plan.id}">Bus number</label>
+          <input id="bus-number-${plan.id}" maxlength="30" placeholder="e.g. TN 01 AB 1234" value="${safeText(plan.bus_number || "")}">
+          <label for="bus-name-${plan.id}">Bus name</label>
+          <input id="bus-name-${plan.id}" maxlength="60" placeholder="e.g. Village Express" value="${safeText(plan.bus_name || "")}">
+          <button class="button button-secondary" type="button" onclick="assignBus(${Number(plan.id)})">Assign bus & generate driver PIN</button>
+          <p id="bus-assignment-message-${plan.id}" class="form-message" aria-live="polite"></p>
+        </div>
         <p class="small-note">Illustrative 30-minute intervals only; not verified operator timetables.</p>
         <p class="small-note">${plan.status === "APPROVED" ? "Automatically approved and published by the SmartRoute AI demo agent." : "Status: " + safeText(plan.status)} Prototype recommendation only; verify with a real bus operator before travel.</p>
       </article>`;
     }).join("") || '<p class="muted-text">No schedule proposals available.</p>';
   } catch (error) {
     box.innerHTML = '<p class="error-message">Schedule database error: ' + safeText(error.message) + '. Make sure the SQLite backend is running.</p>';
+  }
+}
+
+async function assignBus(scheduleId) {
+  const numberInput = document.getElementById("bus-number-" + scheduleId);
+  const nameInput = document.getElementById("bus-name-" + scheduleId);
+  const message = document.getElementById("bus-assignment-message-" + scheduleId);
+  const bus_number = numberInput ? numberInput.value.trim() : "";
+  const bus_name = nameInput ? nameInput.value.trim() : "";
+  if (!bus_number || !bus_name) {
+    message.textContent = "Enter both the bus number and bus name.";
+    message.className = "form-message error-message";
+    return;
+  }
+  try {
+    const response = await adminApiFetch("http://127.0.0.1:5001/api/schedules/" + scheduleId + "/bus", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ bus_number, bus_name })
+    });
+    const result = await response.json();
+    if (!response.ok) throw new Error(result.error || "Bus assignment failed.");
+    message.innerHTML = "Bus assigned. Driver PIN (share privately): <strong>" + safeText(result.driver_pin) +
+      "</strong><br><a href='driver.html' target='_blank' rel='noopener'>Open Driver GPS page</a>. This PIN is shown only now; generate a new one if lost.";
+    message.className = "form-message success-message";
+    await renderSchedulePlans([]);
+  } catch (error) {
+    message.textContent = error.message || "Could not assign bus.";
+    message.className = "form-message error-message";
   }
 }
 
