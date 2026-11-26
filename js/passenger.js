@@ -8,11 +8,8 @@ const STORAGE_KEYS = {
   token: "smartrouteToken"
 };
 
-// Use the computer/phone hosting the frontend, not 127.0.0.1 on the
-// passenger's device. HTTPS deployments must proxy /api to the Flask backend.
-const PASSENGER_API_BASE = window.SMARTROUTE_API_BASE || (window.location.protocol === "https:"
-  ? "/api"
-  : "http://" + window.location.hostname + ":5001/api");
+// Shared API base is initialized by js/api-config.js before this file loads.
+const PASSENGER_API_BASE = window.SMARTROUTE_API_BASE;
 
 async function passengerApiFetch(url, options = {}) {
   const token = localStorage.getItem(STORAGE_KEYS.token);
