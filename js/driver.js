@@ -55,7 +55,7 @@ function startTracking() {
   }
   const scheduleId = Number(document.getElementById("tracking-schedule-id").value);
   const pin = document.getElementById("tracking-pin").value.trim();
-  if (!Number.isInteger(scheduleId) || scheduleId < 1 || !/^\\d{8}$/.test(pin)) {
+  if (!Number.isInteger(scheduleId) || scheduleId < 1 || !/^\d{8}$/.test(pin)) {
     driverMessage("Enter a valid schedule ID and the 8-digit PIN.", true);
     return;
   }
