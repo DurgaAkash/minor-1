@@ -201,8 +201,14 @@ def require_role(*roles):
 
 
 def make_departures(time_slot, buses):
+    value = str(time_slot).strip()
     base_minutes = {"morning": 7 * 60, "afternoon": 12 * 60, "evening": 17 * 60}
-    start = base_minutes.get(str(time_slot).strip().lower(), 7 * 60)
+    try:
+        parsed_time = datetime.strptime(value, "%H:%M")
+        start = parsed_time.hour * 60 + parsed_time.minute
+    except ValueError:
+        # Keep compatibility with older check-ins and requests using day-part labels.
+        start = base_minutes.get(value.lower(), 7 * 60)
     values = []
     for index in range(max(1, min(int(buses), 20))):
         minutes = start + index * 30
@@ -425,8 +431,14 @@ def add_request():
         expected_passengers = int(data.get("expected_passengers"))
     except (ValueError, TypeError):
         return jsonify({"error": "Invalid passenger count."}), 400
-    if not source or not destination or not preferred_time or source.casefold() == destination.casefold():
-        return jsonify({"error": "Enter two different locations and a preferred time."}), 400
+    valid_time = False
+    try:
+        datetime.strptime(preferred_time, "%H:%M")
+        valid_time = True
+    except ValueError:
+        valid_time = preferred_time.casefold() in ("morning", "afternoon", "evening")
+    if not source or not destination or not valid_time or source.casefold() == destination.casefold():
+        return jsonify({"error": "Enter two different locations and a valid suggested departure time."}), 400
     if not 1 <= expected_passengers <= 500:
         return jsonify({"error": "Expected passengers must be between 1 and 500."}), 400
     conn = get_db()
