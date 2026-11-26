@@ -5,6 +5,7 @@ Run from the repository root:
 
 All tests use a temporary SQLite database.
 """
+import sqlite3
 import sys
 import tempfile
 import unittest
@@ -51,6 +52,59 @@ class SmartRouteApiTests(unittest.TestCase):
             "expected_passengers": count,
             "reason": "Students and workers need a reliable service."
         })
+
+    def test_legacy_shared_records_are_migrated_to_demo_passenger(self):
+        with tempfile.TemporaryDirectory() as directory:
+            legacy_path = Path(directory) / "legacy.db"
+            with sqlite3.connect(legacy_path) as conn:
+                conn.execute("""
+                    CREATE TABLE requests (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        source TEXT NOT NULL, destination TEXT NOT NULL,
+                        preferred_time TEXT NOT NULL, expected_passengers INTEGER NOT NULL,
+                        reason TEXT, status TEXT DEFAULT 'PENDING',
+                        admin_note TEXT DEFAULT '', created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    )
+                """)
+                conn.execute("""
+                    CREATE TABLE checkins (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        source TEXT NOT NULL, destination TEXT NOT NULL,
+                        travel_time TEXT NOT NULL, passengers INTEGER NOT NULL,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    )
+                """)
+                conn.execute(
+                    "INSERT INTO requests (source, destination, preferred_time, expected_passengers) VALUES (?, ?, ?, ?)",
+                    ("Legacy Village", "Legacy Town", "Morning", 9)
+                )
+                conn.execute(
+                    "INSERT INTO checkins (source, destination, travel_time, passengers) VALUES (?, ?, ?, ?)",
+                    ("Legacy Village", "Legacy Town", "Morning", 6)
+                )
+
+            with patch.object(backend_app, "DB_PATH", legacy_path):
+                backend_app.initialize_database()
+                client = backend_app.app.test_client()
+                login = client.post("/api/auth/login", json={
+                    "username": "passenger", "password": "travel123"
+                })
+                token = login.get_json()["token"]
+                passenger_rows = client.get(
+                    "/api/requests", headers={"Authorization": "Bearer " + token}
+                ).get_json()
+                self.assertEqual(len(passenger_rows), 1)
+                self.assertEqual(passenger_rows[0]["source"], "Legacy Village")
+
+                admin_login = client.post("/api/auth/login", json={
+                    "username": "admin", "password": "admin123"
+                })
+                admin_token = admin_login.get_json()["token"]
+                checkins = client.get(
+                    "/api/checkins", headers={"Authorization": "Bearer " + admin_token}
+                ).get_json()
+                self.assertEqual(len(checkins), 1)
+                self.assertEqual(checkins[0]["source"], "Legacy Village")
 
     def test_login_issues_session_and_wrong_password_is_rejected(self):
         denied = self.client.post("/api/auth/login", json={
