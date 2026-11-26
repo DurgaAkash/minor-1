@@ -17,8 +17,7 @@ from flask_cors import CORS
 
 app = Flask(__name__)
 CORS(app, resources={r"/api/*": {"origins": [
-    "http://127.0.0.1:5500", "http://localhost:5500",
-    re.compile(r"^http://(?:192\.168\.\d{1,3}\.\d{1,3}|10\.\d{1,3}\.\d{1,3}\.\d{1,3}|172\.(?:1[6-9]|2[0-9]|3[01])\.\d{1,3}\.\d{1,3}):5500$")
+    re.compile(r"^http://(?:localhost|127\.0\.0\.1|192\.168\.\d{1,3}\.\d{1,3}|10\.\d{1,3}\.\d{1,3}\.\d{1,3}|172\.(?:1[6-9]|2[0-9]|3[01])\.\d{1,3}\.\d{1,3}):(?:3000|5000|5500|5501|8000|8080)$")
 ]}})
 
 DB_PATH = Path(__file__).with_name("smartroute.db")
