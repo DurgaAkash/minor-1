@@ -257,9 +257,9 @@ class SmartRouteApiTests(unittest.TestCase):
         self.assertEqual(schedules[0]["time_slot"], "17:30")
         self.assertEqual(schedules[0]["departures"], ["05:30 PM"])
 
-    def test_assigned_bus_driver_gps_is_visible_to_passenger(self):
+    def test_operator_bus_number_can_be_saved_without_gps_tracking(self):
         with patch.object(backend_app, "fetch_ml_forecast", return_value=None):
-            self.submit_request(self.passenger_token, "GPS Village", "GPS Town", 3)
+            self.submit_request(self.passenger_token, "Fleet Village", "Fleet Town", 3)
         schedule = self.client.get(
             "/api/schedules", headers=self.headers(self.admin_token)
         ).get_json()[0]
@@ -269,23 +269,21 @@ class SmartRouteApiTests(unittest.TestCase):
             json={"bus_number": "TN 01 AB 1234", "bus_name": "Village Express"}
         )
         self.assertEqual(assigned.status_code, 200)
-        pin = assigned.get_json()["driver_pin"]
+        payload = assigned.get_json()
+        self.assertEqual(payload["bus_number"], "TN 01 AB 1234")
+        self.assertEqual(payload["bus_name"], "Village Express")
+        self.assertNotIn("driver_pin", payload)
         gps = self.client.post("/api/tracking/location", json={
-            "schedule_id": schedule["id"], "pin": pin,
-            "travel_date": backend_app.datetime.now().date().isoformat(),
-            "latitude": 13.0827, "longitude": 80.2707, "accuracy": 8
+            "schedule_id": schedule["id"], "pin": "12345678",
+            "latitude": 13.0827, "longitude": 80.2707
         })
-        self.assertEqual(gps.status_code, 200)
+        self.assertEqual(gps.status_code, 404)
         tracking = self.client.get(
             f"/api/tracking/{schedule['id']}",
             headers=self.headers(self.passenger_token)
         )
-        self.assertEqual(tracking.status_code, 200)
-        payload = tracking.get_json()
-        self.assertEqual(payload["bus_number"], "TN 01 AB 1234")
-        self.assertEqual(payload["bus_name"], "Village Express")
-        self.assertAlmostEqual(payload["latitude"], 13.0827)
-        self.assertAlmostEqual(payload["longitude"], 80.2707)
+        self.assertEqual(tracking.status_code, 404)
+
 
     def test_logout_revokes_the_session_token(self):
         response = self.client.post(
