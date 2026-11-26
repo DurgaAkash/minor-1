@@ -1050,3 +1050,8 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   .published-bus-row { grid-template-columns: 1fr; gap: 8px; }
   .published-ai-heading { align-items: flex-start; }
 }
+
+
+/* Recommended next published rural bus departure */
+.best-bus-recommendation{margin:1rem 0 1.25rem;padding:1.1rem 1.25rem;border:1px solid #a7dfc5;border-left:5px solid #16845b;border-radius:14px;background:linear-gradient(135deg,#effbf5,#f7fcfa);box-shadow:0 8px 22px rgba(16,94,66,.08)}
+.best-bus-recommendation h4{margin:.65rem 0;color:#123b30;font-size:1.1rem}.best-bus-recommendation p{margin:.35rem 0}.india-bus-top{display:flex;align-items:center;gap:.5rem;flex-wrap:wrap}
