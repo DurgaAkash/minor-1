@@ -570,6 +570,15 @@ def get_schedules():
     results = []
     for row in rows:
         item = dict(row)
+        latest_agent = conn.execute("""
+            SELECT ml_forecast, planning_demand, buses, data_basis, explanation, created_at
+            FROM agent_runs
+            WHERE lower(trim(source)) = lower(trim(?))
+              AND lower(trim(destination)) = lower(trim(?))
+              AND lower(trim(time_slot)) = lower(trim(?))
+            ORDER BY id DESC LIMIT 1
+        """, (item["source"], item["destination"], item["time_slot"])).fetchone()
+        item["ai_analysis"] = dict(latest_agent) if latest_agent else None
         try:
             item["departures"] = json.loads(item["departures"])
         except (TypeError, ValueError):
