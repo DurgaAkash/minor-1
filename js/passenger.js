@@ -4,8 +4,25 @@
 const STORAGE_KEYS = {
   checkins: "smartrouteCheckins",
   requests: "smartrouteRequests",
-  user: "smartrouteUser"
+  user: "smartrouteUser",
+  token: "smartrouteToken"
 };
+
+function passengerApiFetch(url, options = {}) {
+  const token = localStorage.getItem(STORAGE_KEYS.token) || "";
+  return fetch(url, {
+    ...options,
+    headers: { ...(options.headers || {}), Authorization: "Bearer " + token }
+  });
+}
+
+const passengerSession = (() => {
+  try { return JSON.parse(localStorage.getItem(STORAGE_KEYS.user) || "null"); }
+  catch { return null; }
+})();
+if (!localStorage.getItem(STORAGE_KEYS.token) || !passengerSession || passengerSession.role !== "passenger") {
+  window.location.replace("login.html");
+}
 
 function readList(key) {
   try {
@@ -293,7 +310,7 @@ document.getElementById("checkin-form").addEventListener("submit", async functio
   }
 
   try {
-    const response = await fetch("http://127.0.0.1:5001/api/checkins", {
+    const response = await passengerApiFetch("http://127.0.0.1:5001/api/checkins", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(checkin)
@@ -325,7 +342,7 @@ document.getElementById("request-form").addEventListener("submit", async functio
   }
 
   try {
-    const response = await fetch("http://127.0.0.1:5001/api/requests", {
+    const response = await passengerApiFetch("http://127.0.0.1:5001/api/requests", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(request)
@@ -346,7 +363,7 @@ async function renderPublishedSchedules() {
   const container = document.getElementById("published-schedules");
   if (!container) return;
   try {
-    const response = await fetch("http://127.0.0.1:5001/api/schedules?published_only=true");
+    const response = await passengerApiFetch("http://127.0.0.1:5001/api/schedules?published_only=true");
     if (!response.ok) throw new Error("Published schedules could not be loaded.");
     const schedules = await response.json();
     const matchingSchedules = activeScheduleRoute
@@ -387,7 +404,7 @@ async function renderPublishedSchedules() {
 async function renderMyRequests() {
   const container = document.getElementById("my-requests");
   try {
-    const response = await fetch("http://127.0.0.1:5001/api/requests");
+    const response = await passengerApiFetch("http://127.0.0.1:5001/api/requests");
     if (!response.ok) throw new Error("Request list could not be loaded.");
     const requests = await response.json();
     if (!requests.length) {
@@ -412,8 +429,11 @@ function escapeHTML(value) {
   })[character]);
 }
 
-function logoutPassenger() {
+async function logoutPassenger() {
+  try { await passengerApiFetch("http://127.0.0.1:5001/api/auth/logout", { method: "POST" }); }
+  catch (error) { console.warn("Server sign-out could not be confirmed:", error); }
   localStorage.removeItem(STORAGE_KEYS.user);
+  localStorage.removeItem(STORAGE_KEYS.token);
   window.location.href = "login.html";
 }
 
