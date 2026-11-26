@@ -143,6 +143,19 @@ def initialize_database():
                 "INSERT INTO users (username, password_hash, role) VALUES (?, ?, ?)",
                 (username, hash_password(password), role)
             )
+
+    # Older prototype versions had one shared demo passenger and no owner_id.
+    # Attach those legacy records to the configured demo passenger so their
+    # history remains visible after passenger-level isolation is enabled.
+    passenger_username = os.getenv("SMARTROUTE_PASSENGER_USERNAME", "passenger")
+    passenger = conn.execute(
+        "SELECT id FROM users WHERE username = ? AND role = 'passenger'",
+        (passenger_username,)
+    ).fetchone()
+    if passenger:
+        conn.execute("UPDATE requests SET owner_id = ? WHERE owner_id IS NULL", (passenger["id"],))
+        conn.execute("UPDATE checkins SET owner_id = ? WHERE owner_id IS NULL", (passenger["id"],))
+
     conn.commit()
     conn.close()
 
