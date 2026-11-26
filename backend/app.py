@@ -6,6 +6,7 @@ import hashlib
 import json
 import math
 import os
+import re
 import secrets
 import sqlite3
 import urllib.error
@@ -16,7 +17,8 @@ from flask_cors import CORS
 
 app = Flask(__name__)
 CORS(app, resources={r"/api/*": {"origins": [
-    "http://127.0.0.1:5500", "http://localhost:5500"
+    "http://127.0.0.1:5500", "http://localhost:5500",
+    re.compile(r"^http://(?:192\\.168\\.\\d{1,3}\\.\\d{1,3}|10\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}|172\\.(?:1[6-9]|2[0-9]|3[01])\\.\\d{1,3}\\.\\d{1,3}):5500$")
 ]}})
 
 DB_PATH = Path(__file__).with_name("smartroute.db")
@@ -778,4 +780,4 @@ def analyze_pending_demand():
 
 if __name__ == "__main__":
     initialize_database()
-    app.run(host="127.0.0.1", port=5001, debug=False)
+    app.run(host="0.0.0.0", port=5001, debug=False)
