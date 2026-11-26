@@ -260,6 +260,10 @@ async function showRouteOnMap(from, to) {
   }
 }
 
+function navigatePassengerTo(hash) {
+  const link = document.querySelector('.sidebar-link[href="' + hash + '"]');
+  if (link) link.click();
+}
 document.getElementById("route-form").addEventListener("submit", async function (event) {
   event.preventDefault();
   const from = cleanText(document.getElementById("route-from").value);
@@ -319,6 +323,7 @@ document.getElementById("route-form").addEventListener("submit", async function 
   } finally {
     submitButton.disabled = false;
     submitButton.textContent = "Search Routes";
+    navigatePassengerTo("#route-results-page");
   }
 });
 
@@ -354,6 +359,7 @@ document.getElementById("checkin-form").addEventListener("submit", async functio
   }
   this.reset();
   document.getElementById("checkin-count").value = 1;
+  navigatePassengerTo("#request-section");
 });
 
 document.getElementById("request-form").addEventListener("submit", async function (event) {
@@ -391,6 +397,8 @@ document.getElementById("request-form").addEventListener("submit", async functio
   document.getElementById("request-count").value = 1;
   setDefaultRequestDate();
   renderMyRequests();
+  renderPublishedSchedules();
+  navigatePassengerTo("#published-section");
 });
 
 async function renderPublishedSchedules() {
