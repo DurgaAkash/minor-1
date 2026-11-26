@@ -436,10 +436,10 @@ async function renderPublishedSchedules() {
       <article class="request-result">
         <div class="request-top"><strong>${escapeHTML(item.source)} → ${escapeHTML(item.destination)}</strong><span class="status-pill status-approved">PUBLISHED</span></div>
         <p><strong>Time slot:</strong> ${escapeHTML(item.time_slot)}</p>
-        <p><strong>Bus number:</strong> ${escapeHTML(item.bus_number || "Not assigned")} · <strong>Bus name:</strong> ${escapeHTML(item.bus_name || "Not assigned")}</p>
-        <p><strong>Planning demand estimate:</strong> ${Number(item.predicted_passengers)} passengers · <strong>Suggested buses:</strong> ${Number(item.buses)}</p>
+        <p><strong>${item.bus_assignment_type === "OPERATOR" ? "Operator bus number" : "AI fleet allocation ID"}:</strong> ${escapeHTML(item.bus_number || "Not allocated")} · <strong>Bus name:</strong> ${escapeHTML(item.bus_name || "Awaiting operator confirmation")}</p>
+        <p><strong>Planning demand estimate:</strong> ${Number(item.predicted_passengers)} passengers · <strong>AI suggested buses:</strong> ${Number(item.buses)}</p>
         <p><strong>Departure proposals:</strong> ${(item.departures || []).map(escapeHTML).join(" · ")}</p>
-        ${item.bus_number ? `<button class="button button-primary" type="button" onclick="trackBus(${Number(item.id)})">Track this bus</button>` : '<p class="small-note">Bus number and driver have not been assigned yet.</p>'}
+        ${item.bus_assignment_type === "OPERATOR" && item.bus_number ? `<button class="button button-primary" type="button" onclick="trackBus(${Number(item.id)})">Track this bus</button>` : '<p class="small-note">AI allocated a planning fleet ID. The operator must confirm the real vehicle and driver before live GPS tracking is available.</p>'}
         ${item.admin_note ? `<p class="admin-note">SmartRoute AI: ${escapeHTML(item.admin_note)}</p>` : ""}
         <p class="small-note">Admin-approved prototype schedule. Confirm with the bus operator before travelling.</p>
       </article>`).join("");
