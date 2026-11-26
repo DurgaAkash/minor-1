@@ -1,4 +1,6 @@
-const API_BASE = "http://127.0.0.1:5001/api";
+const API_BASE = window.SMARTROUTE_API_BASE || (window.location.protocol === "https:"
+  ? "/api"
+  : "http://" + window.location.hostname + ":5001/api");
 let watchId = null;
 let activeScheduleId = null;
 let activePin = null;
