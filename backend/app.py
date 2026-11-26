@@ -264,7 +264,8 @@ def run_agent_analysis(source, destination, time_slot, trigger_type="request"):
           destination = excluded.destination,
           time_slot = excluded.time_slot,
           status = CASE
-            WHEN schedules.predicted_passengers != excluded.predicted_passengers
+            WHEN schedules.status = 'REJECTED'
+              OR schedules.predicted_passengers != excluded.predicted_passengers
               OR schedules.buses != excluded.buses
               OR schedules.departures != excluded.departures
             THEN 'PENDING' ELSE schedules.status END,
