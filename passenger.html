@@ -19,7 +19,23 @@
 
   <main class="section dashboard-section">
     <p id="cloud-status" class="small-note" aria-live="polite">Checking SQLite database connection...</p>
-    <div class="dashboard-welcome">
+    <div class="passenger-layout">
+      <aside class="dashboard-sidebar" aria-label="Passenger dashboard navigation">
+        <div class="sidebar-brand"><span>🚌</span><div><strong>SmartRoute AI</strong><small>Passenger Menu</small></div></div>
+        <nav class="sidebar-nav">
+          <a class="sidebar-link active" href="#passenger-overview"><span>🏠</span> Overview</a>
+          <a class="sidebar-link" href="#route-finder-section"><span>🔎</span> Route Finder</a>
+          <a class="sidebar-link" href="#route-results"><span>🚌</span> Bus Search & Live GPS</a>
+          <a class="sidebar-link" href="#route-map-section"><span>🗺️</span> Route Map</a>
+          <a class="sidebar-link" href="#checkin-section"><span>📝</span> Passenger Check-in</a>
+          <a class="sidebar-link" href="#request-section"><span>📨</span> Request a Bus</a>
+          <a class="sidebar-link" href="#published-section"><span>🗓️</span> Published Schedules</a>
+          <a class="sidebar-link" href="#my-requests-section"><span>📋</span> My Requests</a>
+        </nav>
+        <div class="sidebar-help"><strong>Need a better service?</strong><p>Submit a passenger request and track its approval status here.</p></div>
+      </aside>
+      <div class="passenger-main-content">
+    <div id="passenger-overview" class="dashboard-welcome">
       <div><span class="eyebrow" data-i18n="passengerPortal">PASSENGER PORTAL</span><h1 data-i18n="planJourney">Plan your journey</h1><p data-i18n="passengerIntro">Find a route, record your travel demand, or request a better bus service.</p></div>
       <div class="welcome-icon">🚌</div>
     </div>
@@ -34,7 +50,7 @@
           <button class="button button-primary full-button" type="submit" data-i18n="searchRoutes">Search Routes</button>
         </form>
         <div id="route-results" class="result-area" aria-live="polite"></div>
-        <h3 class="map-title" data-i18n="routeMap">Route Map</h3>
+        <h3 id="route-map-section" class="map-title" data-i18n="routeMap">Route Map</h3>
         <div id="route-map" role="region" aria-label="Map showing searched route"></div>
         <p id="map-message" class="small-note map-message" aria-live="polite" data-i18n="mapPrompt">Search a route to view its location on the map.</p>
       </section>
@@ -74,7 +90,7 @@
         <div id="my-requests" class="result-area"><p class="muted-text">No requests submitted yet.</p></div>
       </section>
     </div>
-    <p class="demo-warning">Passenger check-ins and service requests use the local Flask/SQLite backend. Bus timetables are read from public India GTFS feeds; live GPS is shown only for supported networks when a fresh matching feed is available. Feed coverage, freshness and accuracy vary. Verify the service with its operator before travel.</p>
+      </div>\n    </div>\n    <p class="demo-warning">Passenger check-ins and service requests use the local Flask/SQLite backend. Bus timetables are read from public India GTFS feeds; live GPS is shown only for supported networks when a fresh matching feed is available. Feed coverage, freshness and accuracy vary. Verify the service with its operator before travel.</p>
   </main>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
