@@ -51,6 +51,10 @@ async function sendLocation(position) {
 }
 
 function startTracking() {
+  if (!window.isSecureContext && !["localhost", "127.0.0.1"].includes(window.location.hostname)) {
+    driverMessage("Phone GPS requires HTTPS. Open the secure HTTPS Driver GPS link; ordinary LAN HTTP cannot access location.", true);
+    return;
+  }
   if (!navigator.geolocation) {
     driverMessage("This browser does not support GPS location.", true);
     return;
