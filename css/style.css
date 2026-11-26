@@ -204,3 +204,12 @@ a { color: inherit; text-decoration: none; }
   background: #eaf7ef;
 }
 .autocomplete-message { padding: 11px 12px; color: var(--muted); font-size: .84rem; }
+
+
+/* Bus assignment and live GPS tracking */
+.bus-assignment-form { margin-top: 14px; padding: 14px; border: 1px solid var(--border); border-radius: 9px; background: #f5fafc; }
+.bus-assignment-form label { display: block; margin: 8px 0 4px; font-size: .88rem; font-weight: 700; }
+.bus-assignment-form input { width: 100%; padding: 10px 11px; border: 1px solid var(--border); border-radius: 7px; font: inherit; }
+.bus-assignment-form .button { margin-top: 12px; }
+#bus-tracking-map { width: 100%; height: 360px; margin-top: 12px; border: 1px solid var(--border); border-radius: 10px; z-index: 1; }
+#bus-tracking-section { scroll-margin-top: 18px; }
