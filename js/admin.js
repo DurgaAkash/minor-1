@@ -435,7 +435,7 @@ async function renderPredictionsAndAgent(checkins, requests) {
 
 function scheduleSlotStart(slot) {
   const value = String(slot).trim().toLowerCase();
-  const clock = value.match(/^(\\d{1,2}):(\\d{2})(?:\\s*(am|pm))?$/i);
+  const clock = value.match(/^(\d{1,2}):(\d{2})(?:\\s*(am|pm))?$/i);
   if (clock) {
     let hour = Number(clock[1]);
     const minute = Number(clock[2]);
