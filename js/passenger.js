@@ -8,12 +8,18 @@ const STORAGE_KEYS = {
   token: "smartrouteToken"
 };
 
-function passengerApiFetch(url, options = {}) {
+async function passengerApiFetch(url, options = {}) {
   const token = localStorage.getItem(STORAGE_KEYS.token) || "";
-  return fetch(url, {
+  const response = await fetch(url, {
     ...options,
     headers: { ...(options.headers || {}), Authorization: "Bearer " + token }
   });
+  if (response.status === 401) {
+    localStorage.removeItem(STORAGE_KEYS.user);
+    localStorage.removeItem(STORAGE_KEYS.token);
+    window.location.replace("login.html");
+  }
+  return response;
 }
 
 const passengerSession = (() => {
