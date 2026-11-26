@@ -174,7 +174,7 @@ function renderRequests(requests) {
   container.innerHTML = requests.slice().reverse().map(request => {
     const status = request.status || "PENDING";
     const statusClass = status === "APPROVED" ? "status-approved" : status === "REJECTED" ? "status-rejected" : "status-pending";
-    const displayStatus = status === "PENDING" ? "AI ANALYSIS" : status;
+    const displayStatus = status === "PENDING" ? "AWAITING APPROVAL" : status;
     const displayClass = status === "PENDING" ? "status-available" : statusClass;
     return `
       <article class="admin-request-card">
