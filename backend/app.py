@@ -431,7 +431,8 @@ def add_request():
     source = str(data.get("source", "")).strip()
     destination = str(data.get("destination", "")).strip()
     preferred_time = str(data.get("preferred_time", "")).strip()
-    travel_date = str(data.get("travel_date", "")).strip()
+    # Older clients may omit travel_date; default them to today for backward compatibility.
+    travel_date = str(data.get("travel_date") or datetime.now().date().isoformat()).strip()
     reason = str(data.get("reason", "")).strip()
     try:
         expected_passengers = int(data.get("expected_passengers"))
