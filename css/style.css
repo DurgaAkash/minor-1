@@ -969,3 +969,84 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   #passenger-overview .welcome-icon { display: none; }
   #passenger-overview .overview-steps { grid-template-columns: 1fr; }
 }
+
+
+/* AI demand-based published bus schedules */
+.published-ai-schedule {
+  width: 100%;
+  margin: 18px 0;
+  padding: clamp(18px, 3vw, 28px);
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  box-shadow: 0 8px 24px rgba(18, 52, 90, .07);
+}
+.published-ai-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid var(--border);
+}
+.published-ai-heading h3 { margin-top: 5px; color: var(--navy); font-size: 1.25rem; }
+.published-ai-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin: 18px 0;
+}
+.published-ai-metrics > div {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 15px;
+  background: #f1f7fb;
+  border-radius: 12px;
+}
+.published-ai-metrics strong { color: var(--navy); font-size: 1.35rem; }
+.published-ai-metrics span { color: var(--muted); font-size: .82rem; }
+.published-ai-basis {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+  padding: 12px 15px;
+  color: var(--ink);
+  background: #edf7f1;
+  border-radius: 10px;
+  font-size: .9rem;
+}
+.published-ai-basis span { color: var(--green); font-weight: 700; }
+.published-bus-title { margin: 20px 0 10px; color: var(--navy); font-size: 1rem; }
+.published-bus-list { display: grid; gap: 9px; }
+.published-bus-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(150px, .55fr) auto;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+  background: #f8fafc;
+  border: 1px solid var(--border);
+  border-radius: 11px;
+}
+.published-bus-row > div:first-child { display: grid; gap: 2px; }
+.published-bus-row > div:first-child strong { color: var(--navy); }
+.published-bus-row > div:first-child span,
+.published-bus-time small { color: var(--muted); font-size: .82rem; }
+.published-bus-time { display: grid; gap: 2px; }
+.published-bus-time strong { color: var(--green); }
+.published-bus-status {
+  padding: 6px 9px;
+  color: #79530b;
+  background: #fff4d9;
+  border-radius: 20px;
+  font-size: .75rem;
+  font-weight: 700;
+  text-align: center;
+}
+.published-ai-explanation { margin-top: 12px; }
+@media (max-width: 700px) {
+  .published-ai-metrics { grid-template-columns: 1fr; }
+  .published-bus-row { grid-template-columns: 1fr; gap: 8px; }
+  .published-ai-heading { align-items: flex-start; }
+}
