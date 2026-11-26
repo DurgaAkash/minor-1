@@ -114,6 +114,15 @@
     return data;
   }
 
+  function gtfsMinutes(value) {
+    if (!value || !/^\d{1,3}:\d{2}:\d{2}$/.test(value)) return Number.MAX_SAFE_INTEGER;
+    const [hours, minutes] = value.split(':').map(Number);
+    return hours * 60 + minutes;
+  }
+
+  function localDateKey(date = new Date()) {
+    return [date.getFullYear(), String(date.getMonth() + 1).padStart(2, '0'), String(date.getDate()).padStart(2, '0')].join('-');
+  }
   function formatTime(gtfsTime) {
     if (!gtfsTime || !/^\d{1,3}:\d{2}:\d{2}$/.test(gtfsTime)) return gtfsTime || "Not published";
     const [h, m] = gtfsTime.split(":").map(Number);
@@ -254,7 +263,21 @@
         }
       }
 
-      allMatches.sort((a, b) => a.departure.localeCompare(b.departure));
+      const now = new Date();
+      const isToday = dateText === localDateKey(now);
+      const currentMinutes = now.getHours() * 60 + now.getMinutes();
+      allMatches.forEach(match => {
+        match.departureMinutes = gtfsMinutes(match.departure);
+        match.arrivalMinutes = gtfsMinutes(match.arrival);
+        match.remainingToday = !isToday || match.departureMinutes > currentMinutes;
+        match.journeyMinutes = match.arrivalMinutes >= match.departureMinutes
+          ? match.arrivalMinutes - match.departureMinutes : Number.MAX_SAFE_INTEGER;
+      });
+      allMatches.sort((a, b) =>
+        Number(b.remainingToday) - Number(a.remainingToday) ||
+        a.departureMinutes - b.departureMinutes ||
+        a.journeyMinutes - b.journeyMinutes
+      );
       if (!allMatches.length) {
         const errorNote = feedErrors.length ? '<p class="small-note">Some regional feeds could not be loaded. ' + esc(feedErrors.slice(0, 2).join("; ")) + '</p>' : "";
         return wrapper + '<p class="muted-text">No matching published bus trip was found near both locations for ' + esc(dateText) + ' in the available state feeds. This catalogue does not cover every operator or village route.</p>' + errorNote + '</section>';
@@ -266,11 +289,26 @@
         liveByFeed.set(feed.id, await loadLive(feed));
       }));
 
+      const bestUpcoming = allMatches.find(match => match.remainingToday);
+      const recommended = bestUpcoming || allMatches[0];
+      const recommendation = recommended
+        ? '<article class="best-bus-recommendation"><span class="status-pill status-available">' +
+          (bestUpcoming ? 'BEST NEXT DEPARTURE' : 'EARLIEST PUBLISHED DEPARTURE') +
+          '</span><h4>' + esc(recommended.agency) + ' · ' + esc(recommended.routeName) + '</h4>' +
+          '<p><strong>Board:</strong> ' + esc(recommended.fromStop) + '</p>' +
+          '<p><strong>Departure:</strong> ' + esc(formatTime(recommended.departure)) +
+          ' · <strong>Arrival:</strong> ' + esc(formatTime(recommended.arrival)) + '</p>' +
+          '<p class="small-note">' + (bestUpcoming
+            ? 'Recommended because it is the soonest published trip that has not yet departed on your selected date.'
+            : 'All published departures for this date appear to have passed. This is the earliest timetable entry, not a currently boardable bus.') +
+          '</p></article>'
+        : '';
       const cards = allMatches.slice(0, 12).map(match => {
         const live = liveByFeed.get(match.feed.id);
+        const bestBadge = match === recommended ? '<span class="status-pill status-available">BEST MATCH</span>' : '';
         const isLiveSupported = Boolean(match.feed.realtime && match.feed.realtime.vehicle_positions);
         const scheduleNote = match.feed.note ? '<p class="small-note">Feed note: ' + esc(match.feed.note) + '</p>' : "";
-        return '<article class="india-bus-card"><div class="india-bus-top"><span class="status-pill status-available">PUBLISHED TIMETABLE</span><span class="small-note">' + esc(match.feed.state) + '</span></div>' +
+        return '<article class="india-bus-card"><div class="india-bus-top"><span class="status-pill status-available">PUBLISHED TIMETABLE</span>' + bestBadge + '<span class="small-note">' + esc(match.feed.state) + '</span></div>' +
           '<h4>' + esc(match.routeName) + '</h4><p><strong>Operator:</strong> ' + esc(match.agency) + '</p>' +
           '<p><strong>Board:</strong> ' + esc(match.fromStop) + ' · <strong>Alight:</strong> ' + esc(match.toStop) + '</p>' +
           '<p><strong>Departure:</strong> ' + esc(formatTime(match.departure)) + ' · <strong>Arrival:</strong> ' + esc(formatTime(match.arrival)) + '</p>' +
@@ -279,7 +317,7 @@
           scheduleNote + '<p class="small-note">Source feed: ' + esc(match.feed.name) + ' · <a target="_blank" rel="noopener" href="https://github.com/reclaimchennai/India_GTFS">feed catalogue</a></p></article>';
       }).join("");
       const liveCount = [...liveByFeed.values()].filter(v => v.status === "OK").length;
-      return wrapper + '<p class="small-note">Found ' + allMatches.length + ' matching trip(s) in ' + feeds.length + ' state feed(s). Live feed checks completed: ' + liveCount + '.</p>' + cards +
+      return wrapper + '<p class="small-note">Found ' + allMatches.length + ' matching trip(s) in ' + feeds.length + ' state feed(s). Live feed checks completed: ' + liveCount + '.</p>' + recommendation + cards +
         '<p class="small-note">Data coverage and freshness vary by operator. Some catalogue feeds are community-built or indicative rather than official operator timetables. Verify with the operator before travel.</p></section>';
     } catch (error) {
       return wrapper + '<p class="error-message">' + esc(error.message || "Bus search is temporarily unavailable.") + '</p></section>';
