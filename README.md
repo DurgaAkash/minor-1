@@ -106,7 +106,7 @@ Optional username variables: `SMARTROUTE_PASSENGER_USERNAME` and `SMARTROUTE_ADM
 - Nominatim and OSRM provide geocoding and road-route estimates. They do not confirm bus operators, fares, service availability, seat availability or live GPS positions. Follow public map-service usage policies.
 - SQLite is local to the computer running the backend; it is not cloud-hosted.
 - Authentication now uses server-verified password hashes, role checks and expiring bearer tokens, but the default accounts are demo credentials. This remains a local academic prototype: add HTTPS, rate limiting, secure deployment secrets, backups, monitoring and a production identity/session strategy before public deployment.
-- Existing rows from older database versions may have no passenger owner ID. Admin can still see them, but they are not shown as a passenger's personal history.
+- Existing rows from older database versions without an owner ID are assigned to the configured demo passenger during database initialization, preserving the original single-passenger prototype history.
 
 ## Automated tests
 Install Flask dependencies, then run from the repository root:
