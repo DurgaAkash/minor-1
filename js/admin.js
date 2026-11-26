@@ -434,7 +434,19 @@ async function renderPredictionsAndAgent(checkins, requests) {
 
 
 function scheduleSlotStart(slot) {
-  const value = String(slot).toLowerCase();
+  const value = String(slot).trim().toLowerCase();
+  const clock = value.match(/^(\\d{1,2}):(\\d{2})(?:\\s*(am|pm))?$/i);
+  if (clock) {
+    let hour = Number(clock[1]);
+    const minute = Number(clock[2]);
+    if (minute > 59 || hour > 23 || (!clock[3] && hour > 23)) return 480;
+    if (clock[3]) {
+      if (hour < 1 || hour > 12) return 480;
+      if (clock[3].toLowerCase() === "pm" && hour !== 12) hour += 12;
+      if (clock[3].toLowerCase() === "am" && hour === 12) hour = 0;
+    }
+    return hour * 60 + minute;
+  }
   if (value.includes("morning")) return 420;
   if (value.includes("afternoon")) return 720;
   if (value.includes("evening")) return 1020;
