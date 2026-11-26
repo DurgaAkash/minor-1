@@ -106,7 +106,7 @@ async function renderAdminDashboard(options = {}) {
     }
     requests = requestRows.map(row => ({
       id: String(row.id), from: row.source, to: row.destination,
-      time: row.preferred_time, passengers: row.expected_passengers,
+      time: row.preferred_time, travelDate: row.travel_date || "", passengers: row.expected_passengers,
       reason: row.reason, status: row.status, adminNote: row.admin_note || "",
       createdAt: row.created_at, dbId: row.id
     }));
@@ -194,7 +194,7 @@ function renderRequests(requests) {
       <article class="admin-request-card">
         <div class="request-top"><strong>Request #${safeText(request.id)}</strong><span class="status-pill ${displayClass}">${safeText(displayStatus)}</span></div>
         <h3>${safeText(request.from)} → ${safeText(request.to)}</h3>
-        <p>Preferred time: ${safeText(request.time)} · Expected passengers: <strong>${Number(request.passengers) || 0}</strong></p>
+        <p>Requested travel: ${request.travelDate ? safeText(new Date(request.travelDate + "T00:00:00").toLocaleDateString(undefined, { weekday: "long", year: "numeric", month: "short", day: "numeric" })) : "Date not specified"} at ${safeText(request.time)} · Expected passengers: <strong>${Number(request.passengers) || 0}</strong></p>
         <p>Reason: ${safeText(request.reason || "Not provided")}</p>
         <p class="small-note">Submitted: ${request.createdAt ? new Date(request.createdAt).toLocaleString() : "Date unavailable"}</p>
         <p class="small-note">${status === "APPROVED" ? "Automatically analysed and approved by the SmartRoute AI demo agent. Prototype schedule only; confirm with the bus operator." : status === "PENDING" ? "Included in automatic AI demand analysis." : "Request record: " + safeText(status)}</p>
