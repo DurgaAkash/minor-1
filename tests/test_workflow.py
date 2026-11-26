@@ -133,6 +133,11 @@ class SmartRouteApiTests(unittest.TestCase):
         ).get_json()
         self.assertEqual(len(published), 1)
         self.assertEqual(published[0]["status"], "APPROVED")
+        passenger_requests = self.client.get(
+            "/api/requests", headers=self.headers(self.passenger_token)
+        ).get_json()
+        self.assertEqual(passenger_requests[0]["status"], "APPROVED")
+        self.assertIn("schedule approved", passenger_requests[0]["admin_note"].lower())
 
     def test_checkin_runs_agent_and_is_visible_only_to_admin(self):
         with patch.object(backend_app, "fetch_ml_forecast", return_value=None):
