@@ -46,7 +46,7 @@ Open the repository folder in VS Code. Run each service in a separate terminal a
 
 ### 1. Install dependencies
 ```powershell
-python -m pip install flask flask-cors
+python -m pip install -r backend/requirements.txt
 python -m pip install -r ml-service/requirements.txt
 ```
 
