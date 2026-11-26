@@ -181,6 +181,24 @@ class SmartRouteApiTests(unittest.TestCase):
         self.assertEqual(passenger_requests[0]["status"], "APPROVED")
         self.assertIn("auto-approved", passenger_requests[0]["admin_note"].lower())
 
+    def test_startup_auto_approves_existing_pending_proposals(self):
+        conn = backend_app.get_db()
+        conn.execute("""
+            INSERT INTO requests (owner_id, source, destination, preferred_time, expected_passengers, reason)
+            VALUES (1, 'Old Village', 'Old Town', 'Morning', 10, 'Existing pending request')
+        """)
+        conn.execute("""
+            INSERT INTO schedules (route_key, source, destination, time_slot, predicted_passengers, buses, departures, status)
+            VALUES ('old village|old town|morning', 'Old Village', 'Old Town', 'Morning', 10, 1, '[\"07:00 AM\"]', 'PENDING')
+        """)
+        conn.commit()
+        conn.close()
+
+        backend_app.initialize_database()
+        schedules = self.client.get('/api/schedules', headers=self.headers(self.admin_token)).get_json()
+        requests = self.client.get('/api/requests', headers=self.headers(self.admin_token)).get_json()
+        self.assertEqual(schedules[0]['status'], 'APPROVED')
+        self.assertEqual(requests[0]['status'], 'APPROVED')
     def test_checkin_runs_agent_and_is_visible_only_to_admin(self):
         with patch.object(backend_app, "fetch_ml_forecast", return_value=None):
             submitted = self.client.post(
