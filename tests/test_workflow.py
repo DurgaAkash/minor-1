@@ -157,6 +157,20 @@ class SmartRouteApiTests(unittest.TestCase):
         )
         self.assertEqual(passenger_rows.status_code, 403)
 
+    def test_fallback_uses_larger_signal_to_reduce_possible_double_counting(self):
+        with patch.object(backend_app, "fetch_ml_forecast", return_value=None):
+            checkin = self.client.post(
+                "/api/checkins", headers=self.headers(self.passenger_token),
+                json={"source": "Village M", "destination": "Town N",
+                      "travel_time": "Morning", "passengers": 18}
+            )
+            request = self.submit_request(
+                self.passenger_token, "Village M", "Town N", 25
+            )
+        self.assertEqual(checkin.status_code, 201)
+        self.assertEqual(request.status_code, 201)
+        self.assertEqual(request.get_json()["agent"]["planning_demand"], 25)
+
     def test_random_forest_forecast_is_combined_with_half_pending_request_signal(self):
         with patch.object(backend_app, "fetch_ml_forecast", return_value=30.0):
             submitted = self.submit_request(self.passenger_token, count=20)
