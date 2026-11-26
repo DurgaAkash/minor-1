@@ -103,7 +103,8 @@ Optional username variables: `SMARTROUTE_PASSENGER_USERNAME` and `SMARTROUTE_ADM
 - The included CSV is synthetic sample data, not official APSRTC, government or operator data.
 - The small sample dataset is not sufficient for reliable real-world forecasting. Add verified historical records across more dates, routes, holidays and seasonal periods before using predictions operationally.
 - The 50-passenger bus capacity and 30-minute departure intervals are assumptions, not verified fleet or operator information.
-- Nominatim and OSRM provide geocoding and road-route estimates. They do not confirm bus operators, fares, service availability, seat availability or live GPS positions. Follow public map-service usage policies.
+- Nominatim and OSRM provide geocoding and road-route estimates. They do not confirm bus operators, fares, service availability, seat availability or vehicle registration numbers. Follow public map-service usage policies.
+- Live GPS tracking and driver PIN setup have been removed. Admins can enter a real bus registration number only after confirming it with the relevant transport operator. SmartRoute AI does not contain an all-India live vehicle registration or operator fleet inventory.
 - SQLite is local to the computer running the backend; it is not cloud-hosted.
 - Authentication now uses server-verified password hashes, role checks and expiring bearer tokens, but the default accounts are demo credentials. This remains a local academic prototype: add HTTPS, rate limiting, secure deployment secrets, backups, monitoring and a production identity/session strategy before public deployment.
 - Existing rows from older database versions without an owner ID are assigned to the configured demo passenger during database initialization, preserving the original single-passenger prototype history.
