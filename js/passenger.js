@@ -9,15 +9,24 @@ const STORAGE_KEYS = {
 };
 
 async function passengerApiFetch(url, options = {}) {
-  const token = localStorage.getItem(STORAGE_KEYS.token) || "";
+  const token = localStorage.getItem(STORAGE_KEYS.token);
+  if (!token) {
+    localStorage.removeItem(STORAGE_KEYS.user);
+    window.location.replace("login.html");
+    throw new Error("Your passenger sign-in token is missing. Please sign in again.");
+  }
+
   const response = await fetch(url, {
     ...options,
     headers: { ...(options.headers || {}), Authorization: "Bearer " + token }
   });
+
   if (response.status === 401) {
+    const payload = await response.clone().json().catch(() => ({}));
     localStorage.removeItem(STORAGE_KEYS.user);
     localStorage.removeItem(STORAGE_KEYS.token);
     window.location.replace("login.html");
+    throw new Error(payload.error || "Your sign-in session expired. Please sign in again.");
   }
   return response;
 }
