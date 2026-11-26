@@ -520,3 +520,51 @@ if (passengerCloudStatus) {
     .then(() => passengerCloudStatus.textContent = "SQLite connected. Passenger check-ins and requests are saved in the local database.")
     .catch(() => passengerCloudStatus.textContent = "SQLite backend is offline. Start python backend/app.py.");
 }
+
+
+// Sidebar page navigation: display only the page selected by the passenger.
+(function initializePassengerSidebarPages() {
+  const links = Array.from(document.querySelectorAll(".sidebar-link"));
+  const pages = Array.from(document.querySelectorAll(".sidebar-page"));
+  if (!links.length || !pages.length) return;
+
+  const pageForLink = new Map([
+    ["#passenger-overview", "passenger-overview"],
+    ["#route-finder-section", "route-finder-section"],
+    ["#route-results-page", "route-results-page"],
+    ["#route-map-page", "route-map-page"],
+    ["#checkin-section", "checkin-section"],
+    ["#request-section", "request-section"],
+    ["#published-section", "published-section"],
+    ["#my-requests-section", "my-requests-section"]
+  ]);
+
+  function showPage(hash, updateHistory = true) {
+    const pageId = pageForLink.get(hash) ? pageForLink.get(hash) : "passenger-overview";
+    pages.forEach(page => { page.hidden = page.id !== pageId; });
+    links.forEach(link => {
+      const active = link.getAttribute("href") === hash;
+      link.classList.toggle("active", active);
+      if (active) link.setAttribute("aria-current", "page");
+      else link.removeAttribute("aria-current");
+    });
+    if (updateHistory && window.location.hash !== hash) {
+      history.replaceState(null, "", hash);
+    }
+    if (pageId === "route-map-page" && routeMap) {
+      setTimeout(() => routeMap.invalidateSize(), 80);
+    }
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  links.forEach(link => link.addEventListener("click", event => {
+    event.preventDefault();
+    showPage(link.getAttribute("href"));
+  }));
+
+  const initialHash = window.location.hash;
+  showPage(pageForLink.has(initialHash) ? initialHash : "#passenger-overview", false);
+  window.addEventListener("hashchange", () => {
+    if (pageForLink.has(window.location.hash)) showPage(window.location.hash, false);
+  });
+})();
