@@ -74,15 +74,7 @@ function showMessage(id, message, isError = false) {
   element.className = isError ? "form-message error-message" : "form-message success-message";
 }
 
-// Known demo bus services. Other Indian locations use the map-based road route estimate;
-// this does not imply that a scheduled bus service is available.
-const demoRoutes = [
-  { from: "khambhampadu", to: "tiruvuru", service: "Rural Link 101", time: "07:30 AM", duration: "35 min" },
-  { from: "avadi", to: "veltech junction", service: "Village Connect 202", time: "08:00 AM", duration: "25 min" },
-  { from: "tiruvuru", to: "vijayawada", service: "Town Express 303", time: "09:15 AM", duration: "1 hr 40 min" }
-];
-
-// Interactive map: Leaflet + OpenStreetMap, with Nominatim geocoding and OSRM routing.
+// Real bus timetable and live vehicle data are loaded by js/transit.js.\n\n// Interactive map: Leaflet + OpenStreetMap, with Nominatim geocoding and OSRM routing.
 let routeMap;
 let routeLayer;
 let activeScheduleRoute = null;
@@ -289,9 +281,10 @@ document.getElementById("route-form").addEventListener("submit", async function 
     const route = await showRouteOnMap(from, to);
     activeScheduleRoute = { from, to };
     renderPublishedSchedules();
-    const sample = demoRoutes.find(item =>
-      item.from === from.toLowerCase() && item.to === to.toLowerCase()
-    );
+    let busResults = '<section class="india-bus-results"><h3>Real bus services across India</h3><p class="muted-text">Bus timetable search is loading...</p></section>';
+    if (typeof window.searchIndiaBuses === "function") {
+      busResults = await window.searchIndiaBuses(from, to, date);
+    }
 
     results.innerHTML = `
       <article class="route-result">
@@ -300,9 +293,8 @@ document.getElementById("route-form").addEventListener("submit", async function 
         <p><strong>Approx. distance:</strong> ${route.distanceKm} km</p>
         <p><strong>Estimated driving time:</strong> ${route.durationText}</p>
         <p><strong>Travel date:</strong> ${escapeHTML(date)}</p>
-        ${sample ? `<p><strong>Demo bus service:</strong> ${escapeHTML(sample.service)} · ${escapeHTML(sample.time)}</p>` : ""}
-        <p class="small-note">Road directions are retrieved from OpenStreetMap/OSRM. Bus operators, fares, departure times and seat availability are not verified by this prototype.</p>
-      </article>`;
+        <p class="small-note">Road directions are from OpenStreetMap/OSRM. This road estimate is not a bus service.</p>
+      </article>` + busResults;
     document.getElementById("request-from").value = from;
     document.getElementById("request-to").value = to;
     document.getElementById("checkin-from").value = from;
