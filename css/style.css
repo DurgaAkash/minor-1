@@ -743,3 +743,154 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   .passenger-main-content #route-map { min-height: 380px; }
   .passenger-main-content .dashboard-welcome { min-height: 180px; }
 }
+
+
+/* Passenger dashboard: every selected menu page fills the available workspace */
+.passenger-main-content {
+  display: block;
+  width: 100%;
+  max-width: none;
+}
+.passenger-main-content .dashboard-grid {
+  display: block;
+  width: 100%;
+}
+.passenger-main-content .sidebar-page {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: none;
+  margin: 0 0 22px;
+}
+.passenger-main-content .dashboard-card {
+  display: block;
+  width: 100%;
+  min-height: 62vh;
+  padding: clamp(26px, 4vw, 52px);
+  border-radius: 20px;
+  background: linear-gradient(145deg, #ffffff 0%, #fbfefd 100%);
+  box-shadow: 0 18px 46px rgba(16, 42, 67, .085);
+}
+.passenger-main-content .card-heading {
+  width: 100%;
+  margin-bottom: clamp(24px, 3vw, 38px);
+  padding-bottom: 20px;
+  border-bottom: 1px solid #e7eef1;
+}
+.passenger-main-content .card-heading > span {
+  width: 56px;
+  height: 56px;
+  flex-basis: 56px;
+  border-radius: 16px;
+  color: #117b70;
+  background: linear-gradient(135deg, #e6f6f0, #e9f3f9);
+  font-size: 1.65rem;
+}
+.passenger-main-content .card-heading h2 {
+  font-size: clamp(1.35rem, 2.2vw, 1.8rem);
+}
+.passenger-main-content .card-heading p {
+  font-size: .96rem;
+}
+.passenger-main-content .dashboard-card form {
+  display: grid;
+  width: 100%;
+  max-width: none;
+  gap: 12px 22px;
+}
+.passenger-main-content .dashboard-card form label {
+  margin: 8px 0 0;
+  color: #233f53;
+  font-size: .94rem;
+  font-weight: 750;
+}
+.passenger-main-content .dashboard-card form input,
+.passenger-main-content .dashboard-card form select,
+.passenger-main-content .dashboard-card form textarea {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 54px;
+  padding: 14px 16px;
+  border: 1px solid #d5e3e8;
+  border-radius: 12px;
+  background: #fafdfe;
+  font-size: 1rem;
+}
+.passenger-main-content .dashboard-card form input:focus,
+.passenger-main-content .dashboard-card form select:focus,
+.passenger-main-content .dashboard-card form textarea:focus {
+  border-color: #1a9b7a;
+  box-shadow: 0 0 0 4px rgba(26, 155, 122, .12);
+}
+.passenger-main-content .dashboard-card form .full-button {
+  width: 100%;
+  min-height: 54px;
+  margin-top: 12px;
+  border-radius: 12px;
+  font-size: 1rem;
+}
+.passenger-main-content #route-form {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  align-items: end;
+  gap: 12px 24px;
+}
+.passenger-main-content #route-form label {
+  align-self: end;
+}
+.passenger-main-content #route-form .location-autocomplete,
+.passenger-main-content #route-form > input[type="date"] {
+  width: 100%;
+  min-width: 0;
+}
+.passenger-main-content #route-form .full-button {
+  grid-column: 1 / -1;
+  margin-top: 16px;
+  min-height: 58px;
+  font-size: 1.04rem;
+  letter-spacing: .2px;
+}
+.passenger-main-content .result-area {
+  width: 100%;
+  max-width: none;
+  margin-top: 8px;
+}
+.passenger-main-content .route-result,
+.passenger-main-content .request-result,
+.passenger-main-content .india-bus-card,
+.passenger-main-content .schedule-card {
+  width: 100%;
+  box-sizing: border-box;
+  margin-bottom: 14px;
+  padding: 22px;
+  border-radius: 14px;
+}
+.passenger-main-content #route-map {
+  width: 100%;
+  min-height: 65vh;
+  border-radius: 16px;
+}
+.passenger-main-content .dashboard-welcome {
+  width: 100%;
+  min-height: 230px;
+  box-sizing: border-box;
+  padding: clamp(30px, 5vw, 64px);
+  border-radius: 20px;
+}
+.passenger-main-content .dashboard-welcome h1 {
+  font-size: clamp(2rem, 3.5vw, 3rem);
+}
+@media (max-width: 760px) {
+  .passenger-main-content .dashboard-card {
+    min-height: 0;
+    padding: 24px 20px;
+  }
+  .passenger-main-content #route-form {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 8px;
+  }
+  .passenger-main-content #route-form .full-button {
+    grid-column: 1;
+  }
+  .passenger-main-content #route-map {
+    min-height: 420px;
+  }
+}
