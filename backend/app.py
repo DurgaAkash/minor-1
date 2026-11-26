@@ -560,7 +560,6 @@ def get_schedules():
         ).fetchall()
     else:
         rows = conn.execute("SELECT * FROM schedules ORDER BY updated_at DESC, id DESC").fetchall()
-    conn.close()
     results = []
     for row in rows:
         item = dict(row)
@@ -583,6 +582,7 @@ def get_schedules():
             pass
         results.append(item)
     conn.commit()
+    conn.close()
     return jsonify(results)
 
 
