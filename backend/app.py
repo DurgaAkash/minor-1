@@ -156,6 +156,19 @@ def initialize_database():
         conn.execute("UPDATE requests SET owner_id = ? WHERE owner_id IS NULL", (passenger["id"],))
         conn.execute("UPDATE checkins SET owner_id = ? WHERE owner_id IS NULL", (passenger["id"],))
 
+    # When upgrading to demo auto-approval, publish already-generated pending proposals too.
+    conn.execute("UPDATE schedules SET status = 'APPROVED' WHERE status = 'PENDING'")
+    conn.execute("""
+        UPDATE requests SET status = 'APPROVED',
+          admin_note = 'Auto-approved by SmartRoute AI demo agent after demand analysis. Prototype schedule only; confirm with the bus operator.'
+        WHERE status = 'PENDING' AND EXISTS (
+          SELECT 1 FROM schedules
+          WHERE schedules.status = 'APPROVED'
+            AND lower(trim(schedules.source)) = lower(trim(requests.source))
+            AND lower(trim(schedules.destination)) = lower(trim(requests.destination))
+            AND lower(trim(schedules.time_slot)) = lower(trim(requests.preferred_time))
+        )
+    """)
     conn.commit()
     conn.close()
 
