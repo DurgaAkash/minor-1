@@ -134,6 +134,41 @@ class SmartRouteApiTests(unittest.TestCase):
         self.assertEqual(len(published), 1)
         self.assertEqual(published[0]["status"], "APPROVED")
 
+    def test_checkin_runs_agent_and_is_visible_only_to_admin(self):
+        with patch.object(backend_app, "fetch_ml_forecast", return_value=None):
+            submitted = self.client.post(
+                "/api/checkins", headers=self.headers(self.passenger_token),
+                json={"source": "Village X", "destination": "Town Y",
+                      "travel_time": "Evening", "passengers": 17}
+            )
+        self.assertEqual(submitted.status_code, 201)
+        self.assertEqual(submitted.get_json()["agent"]["planning_demand"], 17)
+        admin_rows = self.client.get(
+            "/api/checkins", headers=self.headers(self.admin_token)
+        ).get_json()
+        self.assertEqual(len(admin_rows), 1)
+        passenger_rows = self.client.get(
+            "/api/checkins", headers=self.headers(self.passenger_token)
+        )
+        self.assertEqual(passenger_rows.status_code, 403)
+
+    def test_random_forest_forecast_is_combined_with_half_pending_request_signal(self):
+        with patch.object(backend_app, "fetch_ml_forecast", return_value=30.0):
+            submitted = self.submit_request(self.passenger_token, count=20)
+        self.assertEqual(submitted.status_code, 201)
+        self.assertEqual(submitted.get_json()["agent"]["planning_demand"], 40)
+        self.assertEqual(submitted.get_json()["agent"]["ml_forecast"], 30.0)
+
+    def test_logout_revokes_the_session_token(self):
+        response = self.client.post(
+            "/api/auth/logout", headers=self.headers(self.passenger_token)
+        )
+        self.assertEqual(response.status_code, 200)
+        after_logout = self.client.get(
+            "/api/auth/me", headers=self.headers(self.passenger_token)
+        )
+        self.assertEqual(after_logout.status_code, 401)
+
     def test_passenger_cannot_create_or_approve_schedules(self):
         response = self.client.post(
             "/api/schedules", headers=self.headers(self.passenger_token),
