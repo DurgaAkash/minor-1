@@ -438,7 +438,7 @@ async function renderMyRequests() {
     }
     container.innerHTML = requests.map(item => `
       <article class="request-result">
-        <div class="request-top"><strong>Request #${item.id}</strong><span class="status-pill ${item.status === "APPROVED" ? "status-approved" : item.status === "REJECTED" ? "status-rejected" : "status-available"}">${escapeHTML(item.status === "PENDING" ? "AI ANALYSIS" : item.status)}</span></div>
+        <div class="request-top"><strong>Request #${item.id}</strong><span class="status-pill ${item.status === "APPROVED" ? "status-approved" : item.status === "REJECTED" ? "status-rejected" : "status-available"}">${escapeHTML(item.status === "PENDING" ? "AWAITING APPROVAL" : item.status)}</span></div>
         <p>${escapeHTML(item.source)} → ${escapeHTML(item.destination)}</p>
         <p class="small-note">${escapeHTML(item.preferred_time)} · ${item.expected_passengers} passenger(s)</p>
         ${item.admin_note ? `<p class="admin-note">Admin: ${escapeHTML(item.admin_note)}</p>` : ""}
