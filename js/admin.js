@@ -188,8 +188,8 @@ function renderRequests(requests) {
   container.innerHTML = requests.slice().reverse().map(request => {
     const status = request.status || "PENDING";
     const statusClass = status === "APPROVED" ? "status-approved" : status === "REJECTED" ? "status-rejected" : "status-pending";
-    const displayStatus = status === "PENDING" ? "AWAITING APPROVAL" : status;
-    const displayClass = status === "PENDING" ? "status-available" : statusClass;
+    const displayStatus = status === "APPROVED" ? "AI AUTO-APPROVED" : status === "PENDING" ? "AI ANALYSIS" : status;
+    const displayClass = status === "APPROVED" ? "status-approved" : status === "PENDING" ? "status-available" : statusClass;
     return `
       <article class="admin-request-card">
         <div class="request-top"><strong>Request #${safeText(request.id)}</strong><span class="status-pill ${displayClass}">${safeText(displayStatus)}</span></div>
@@ -197,7 +197,7 @@ function renderRequests(requests) {
         <p>Preferred time: ${safeText(request.time)} · Expected passengers: <strong>${Number(request.passengers) || 0}</strong></p>
         <p>Reason: ${safeText(request.reason || "Not provided")}</p>
         <p class="small-note">Submitted: ${request.createdAt ? new Date(request.createdAt).toLocaleString() : "Date unavailable"}</p>
-        <p class="small-note">${status === "PENDING" ? "Automatically included in AI demand analysis. Any proposed bus schedule still requires admin approval before publication." : "Request record: " + safeText(status)}</p>
+        <p class="small-note">${status === "APPROVED" ? "Automatically analysed and approved by the SmartRoute AI demo agent. Prototype schedule only; confirm with the bus operator." : status === "PENDING" ? "Included in automatic AI demand analysis." : "Request record: " + safeText(status)}</p>
         ${request.adminNote ? `<p class="small-note">Note: ${safeText(request.adminNote)}</p>` : ""}
       </article>`;
   }).join("");
@@ -497,9 +497,7 @@ async function renderSchedulePlans(recommendations) {
         <p><strong>Suggested buses:</strong> ${Number(plan.buses)} (assumed capacity ${BUS_CAPACITY} each)</p>
         <p><strong>Proposed departures:</strong> ${(plan.departures || []).map(safeText).join(" · ")}</p>
         <p class="small-note">Illustrative 30-minute intervals only; not verified operator timetables.</p>
-        <label for="schedule-note-${plan.id}">Admin decision note</label>
-        <textarea id="schedule-note-${plan.id}" rows="2">${safeText(plan.admin_note || "")}</textarea>
-        ${plan.status === "PENDING" ? `<div class="admin-actions"><button class="button button-primary" data-schedule-action="approve" data-id="${plan.id}" type="button">Approve & Publish</button><button class="button button-danger" data-schedule-action="reject" data-id="${plan.id}" type="button">Reject</button></div>` : ""}
+        <p class="small-note">${plan.status === "APPROVED" ? "Automatically approved and published by the SmartRoute AI demo agent." : "Status: " + safeText(plan.status)} Prototype recommendation only; verify with a real bus operator before travel.</p>
       </article>`;
     }).join("") || '<p class="muted-text">No schedule proposals available.</p>';
   } catch (error) {
