@@ -124,7 +124,7 @@ class SmartRouteApiTests(unittest.TestCase):
         approved = self.client.patch(
             f"/api/schedules/{proposals[0]['id']}",
             headers=self.headers(self.admin_token),
-            json={"status": "APPROVED", "admin_note": "Approved for demo."}
+            json={"status": "APPROVED", "admin_note": "Schedule approved for demo."}
         )
         self.assertEqual(approved.status_code, 200)
         published = self.client.get(
@@ -173,6 +173,24 @@ class SmartRouteApiTests(unittest.TestCase):
             "/api/auth/me", headers=self.headers(self.passenger_token)
         )
         self.assertEqual(after_logout.status_code, 401)
+
+    def test_rejected_schedule_updates_linked_request(self):
+        with patch.object(backend_app, "fetch_ml_forecast", return_value=None):
+            submitted = self.submit_request(self.passenger_token, "Village R", "Town S", 12)
+        schedule = self.client.get(
+            "/api/schedules", headers=self.headers(self.admin_token)
+        ).get_json()[0]
+        rejected = self.client.patch(
+            f"/api/schedules/{schedule['id']}",
+            headers=self.headers(self.admin_token),
+            json={"status": "REJECTED", "admin_note": "Not feasible this month."}
+        )
+        self.assertEqual(rejected.status_code, 200)
+        passenger_request = self.client.get(
+            "/api/requests", headers=self.headers(self.passenger_token)
+        ).get_json()[0]
+        self.assertEqual(passenger_request["status"], "REJECTED")
+        self.assertEqual(passenger_request["admin_note"], "Not feasible this month.")
 
     def test_passenger_cannot_create_or_approve_schedules(self):
         response = self.client.post(
