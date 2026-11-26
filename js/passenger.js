@@ -284,10 +284,12 @@ document.getElementById("route-form").addEventListener("submit", async function 
   try {
     const route = await showRouteOnMap(from, to);
     activeScheduleRoute = { from, to };
-    renderPublishedSchedules();
     let busResults = '<section class="india-bus-results"><h3>Real bus services across India</h3><p class="muted-text">Bus timetable search is loading...</p></section>';
     if (typeof window.searchIndiaBuses === "function") {
       busResults = await window.searchIndiaBuses(from, to, date);
+      publishedTimetableCacheKey = [from, to, date].join("|").toLowerCase();
+      publishedTimetableCacheHTML = busResults;
+      renderPublishedSchedules();
     }
 
     results.innerHTML = `
@@ -305,10 +307,12 @@ document.getElementById("route-form").addEventListener("submit", async function 
     document.getElementById("checkin-to").value = to;
   } catch (error) {
     activeScheduleRoute = { from, to };
-    renderPublishedSchedules();
     let busResults = "";
     if (typeof window.searchIndiaBuses === "function") {
       busResults = await window.searchIndiaBuses(from, to, date);
+      publishedTimetableCacheKey = [from, to, date].join("|").toLowerCase();
+      publishedTimetableCacheHTML = busResults;
+      renderPublishedSchedules();
     }
     results.innerHTML = `
       <article class="route-result">
