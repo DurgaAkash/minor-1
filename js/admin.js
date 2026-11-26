@@ -492,7 +492,7 @@ async function renderSchedulePlans(recommendations) {
     box.innerHTML = plans.map(plan => {
       const cls = plan.status === "APPROVED" ? "status-approved" : plan.status === "REJECTED" ? "status-rejected" : "status-pending";
       return `<article class="schedule-card">
-        <div class="request-top"><strong>${safeText(plan.source)} → ${safeText(plan.destination)}</strong><span class="status-pill ${cls}">${safeText(plan.status)}</span></div>
+        <div class="request-top"><strong>Schedule #${Number(plan.id)} · ${safeText(plan.source)} → ${safeText(plan.destination)}</strong><span class="status-pill ${cls}">${safeText(plan.status)}</span></div>
         <p><strong>Time slot:</strong> ${safeText(plan.time_slot)} · <strong>Planning demand estimate:</strong> ${Number(plan.predicted_passengers)}</p>
         <p><strong>Suggested buses:</strong> ${Number(plan.buses)} (assumed capacity ${BUS_CAPACITY} each)</p>
         <p><strong>Proposed departures:</strong> ${(plan.departures || []).map(safeText).join(" · ")}</p>
