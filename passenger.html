@@ -74,12 +74,14 @@
         <div id="my-requests" class="result-area"><p class="muted-text">No requests submitted yet.</p></div>
       </section>
     </div>
-    <p class="demo-warning">Prototype note: passenger check-ins and service requests are stored in a local SQLite database through Flask. The backend must be running on this computer. Live GPS tracking is not part of this prototype.</p>
+    <p class="demo-warning">Passenger check-ins and service requests use the local Flask/SQLite backend. Bus timetables are read from public India GTFS feeds; live GPS is shown only for supported networks when a fresh matching feed is available. Feed coverage, freshness and accuracy vary. Verify the service with its operator before travel.</p>
   </main>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
   <script src="js/api-config.js"></script>
   <script src="js/main.js"></script>
   <script src="js/passenger.js"></script>
+  <script src="js/transit.js"></script>
 </body>
 </html>
