@@ -29,13 +29,13 @@
     <div id="admin-dashboard" hidden>
       <p id="cloud-status" class="small-note" aria-live="polite">Checking SQLite database connection...</p>
       <div class="dashboard-welcome">
-        <div><span class="eyebrow" data-i18n="administration">ADMINISTRATION</span><h1 data-i18n="adminDashboard">Transport Control Dashboard</h1><p data-i18n="adminDescription">Monitor passenger demand, review AI recommendations and approve proposed bus schedules.</p></div>
+        <div><span class="eyebrow" data-i18n="administration">ADMINISTRATION</span><h1 data-i18n="adminDashboard">Transport Control Dashboard</h1><p data-i18n="adminDescription">Monitor passenger demand and review schedules automatically approved by the SmartRoute AI demo agent.</p></div>
         <div class="welcome-icon">📊</div>
       </div>
 
       <div class="admin-stat-grid">
         <article class="admin-stat"><span data-i18n="totalRequests">Total Requests</span><strong id="total-requests">0</strong></article>
-        <article class="admin-stat"><span>Awaiting Approval</span><strong id="pending-requests">0</strong></article>
+        <article class="admin-stat"><span>AI Auto-Approved Requests</span><strong id="pending-requests">0</strong></article>
         <article class="admin-stat"><span>Agent Runs</span><strong id="approved-requests">0</strong></article>
         <article class="admin-stat"><span data-i18n="passengerCheckins">Passenger Check-ins</span><strong id="total-checkins">0</strong></article>
       </div>
@@ -50,7 +50,7 @@
       </section>
 
       <section class="dashboard-card admin-panel-card">
-        <div class="card-heading"><span>📨</span><div><h2 data-i18n="passengerRequests">Passenger Service Requests</h2><p data-i18n="requestDescription">Passenger requests are analysed automatically. Review and approve or reject the proposed bus schedules below.</p></div></div>
+        <div class="card-heading"><span>📨</span><div><h2 data-i18n="passengerRequests">Passenger Service Requests</h2><p data-i18n="requestDescription">Passenger requests are analysed automatically. The demo AI agent approves and publishes prototype schedules without manual approval.</p></div></div>
         <div id="admin-request-list" class="result-area"></div>
       </section>
 
@@ -67,13 +67,13 @@
       </section>
 
       <section class="dashboard-card admin-panel-card">
-        <div class="card-heading"><span>🤖</span><div><h2 data-i18n="aiAgent">SmartRoute AI Agent Recommendations</h2><p>Analyzes predicted demand and suggests bus capacity and schedule changes. Admin makes the final decision.</p></div></div>
+        <div class="card-heading"><span>🤖</span><div><h2 data-i18n="aiAgent">SmartRoute AI Agent Recommendations</h2><p>Analyses demand, estimates bus capacity and automatically approves prototype schedule recommendations. No manual approval click is required.</p></div></div>
         <div id="agent-recommendations" class="result-area"></div>
         <button class="button button-secondary" id="refresh-analysis" type="button" data-i18n="refreshAnalysis">Refresh Dataset & Analysis</button>
       </section>
 
       <section class="dashboard-card admin-panel-card">
-        <div class="card-heading"><span>🗓️</span><div><h2 data-i18n="scheduleOptimization">Smart Schedule Optimization</h2><p>Proposed bus allocations and departure times based on predicted demand. Admin approval is required.</p></div></div>
+        <div class="card-heading"><span>🗓️</span><div><h2 data-i18n="scheduleOptimization">Smart Schedule Optimization</h2><p>AI-approved prototype bus allocations and illustrative departure times based on predicted demand. Confirm real services with the operator.</p></div></div>
         <div id="schedule-plan-list" class="result-area"></div>
       </section>
       <section class="dashboard-card admin-panel-card">
