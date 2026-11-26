@@ -690,7 +690,7 @@ def assign_bus(schedule_id):
     conn.commit()
     conn.close()
     return jsonify({
-        "message": "Operator bus number saved. Live GPS tracking is disabled.",
+        "message": "Operator bus number saved.",
         "bus_number": bus_number, "bus_name": bus_name,
         "bus_assignment_type": "OPERATOR"
     })
