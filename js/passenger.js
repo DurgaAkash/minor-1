@@ -401,9 +401,13 @@ document.getElementById("request-form").addEventListener("submit", async functio
   navigatePassengerTo("#published-section");
 });
 
+let publishedTimetableCacheKey = "";
+let publishedTimetableCacheHTML = "";
+
 async function renderPublishedSchedules() {
   const container = document.getElementById("published-schedules");
   if (!container) return;
+
   try {
     const response = await passengerApiFetch(PASSENGER_API_BASE + "/schedules?published_only=true");
     if (!response.ok) throw new Error("Published schedules could not be loaded.");
@@ -415,16 +419,7 @@ async function renderPublishedSchedules() {
         )
       : schedules;
 
-    if (!matchingSchedules.length) {
-      container.innerHTML = activeScheduleRoute
-        ? '<p class="muted-text">No AI-generated published schedule matches ' +
-          escapeHTML(activeScheduleRoute.from) + ' → ' + escapeHTML(activeScheduleRoute.to) +
-          ' yet. Submit a check-in or bus request so SmartRoute AI can analyse demand for this route.</p>'
-        : '<p class="muted-text">No AI-generated bus schedules have been published yet. Passenger check-ins and bus requests help the system estimate demand and plan buses.</p>';
-      return;
-    }
-
-    container.innerHTML = matchingSchedules.map(item => {
+    const planningHTML = matchingSchedules.length ? matchingSchedules.map(item => {
       const ai = item.ai_analysis || null;
       const demand = Number(item.predicted_passengers || (ai && ai.planning_demand) || 0);
       const busCount = Math.max(1, Math.min(100, Number(item.buses) || 1));
@@ -435,39 +430,66 @@ async function renderPublishedSchedules() {
         : (ai ? "Observed check-ins / requests fallback (no exact ML forecast)" : "AI planning estimate recorded with this schedule");
       const busCards = Array.from({ length: busCount }, (_, index) => {
         const isConfirmedOperatorBus = index === 0 && item.bus_assignment_type === "OPERATOR" && item.bus_number;
-        const busLabel = isConfirmedOperatorBus
-          ? escapeHTML(item.bus_number)
-          : "AI planning slot " + (index + 1);
+        const busLabel = isConfirmedOperatorBus ? escapeHTML(item.bus_number) : "Planning slot " + (index + 1);
         const busName = isConfirmedOperatorBus
           ? escapeHTML(item.bus_name || "Operator bus")
-          : "Operator vehicle assignment pending";
+          : "No operator vehicle linked to this planning slot";
         return `<div class="published-bus-row">
-          <div><strong>Bus ${index + 1}: ${busLabel}</strong><span>${escapeHTML(busName)}</span></div>
-          <div class="published-bus-time"><small>Suggested departure</small><strong>${escapeHTML(departures[index] || "Time to be confirmed")}</strong></div>
-          <span class="published-bus-status">${isConfirmedOperatorBus ? "Operator bus recorded" : "Planning allocation"}</span>
+          <div><strong>Bus allocation ${index + 1}: ${busLabel}</strong><span>${busName}</span></div>
+          <div class="published-bus-time"><small>Proposed departure</small><strong>${escapeHTML(departures[index] || "Time to be confirmed")}</strong></div>
+          <span class="published-bus-status">${isConfirmedOperatorBus ? "Operator bus recorded" : "Planning only — not a real bus"}</span>
         </div>`;
       }).join("");
 
       return `<article class="published-ai-schedule">
         <div class="published-ai-heading">
-          <div><span class="eyebrow">AI DEMAND-BASED SCHEDULE</span><h3>${escapeHTML(item.source)} → ${escapeHTML(item.destination)}</h3></div>
-          <span class="status-pill status-approved">PUBLISHED</span>
+          <div><span class="eyebrow">AI DEMAND-BASED PLAN</span><h3>${escapeHTML(item.source)} → ${escapeHTML(item.destination)}</h3></div>
+          <span class="status-pill status-approved">PUBLISHED PLAN</span>
         </div>
         <div class="published-ai-metrics">
           <div><strong>${demand}</strong><span>Planning passengers</span></div>
-          <div><strong>${busCount}</strong><span>Suggested buses</span></div>
+          <div><strong>${busCount}</strong><span>Suggested bus allocations</span></div>
           <div><strong>${escapeHTML(item.time_slot)}</strong><span>Demand time slot</span></div>
         </div>
         <div class="published-ai-basis"><strong>Prediction basis:</strong> ${escapeHTML(basisLabel)}
           ${isModelForecast ? `<span>Model forecast: ${Math.round(Number(ai.ml_forecast))} passengers</span>` : ""}
         </div>
-        <h4 class="published-bus-title">Buses planned from demand analysis</h4>
+        <h4 class="published-bus-title">Planning allocations (not confirmed vehicles)</h4>
         <div class="published-bus-list">${busCards}</div>
         ${ai && ai.explanation ? `<p class="small-note published-ai-explanation">${escapeHTML(ai.explanation)}</p>` : ""}
         ${item.admin_note ? `<p class="admin-note">SmartRoute AI / Admin note: ${escapeHTML(item.admin_note)}</p>` : ""}
-        <p class="small-note">These are AI-generated planning allocations and suggested departures, not proof that a physical bus has been dispatched. Confirm the actual bus and timing with the operator before travel.</p>
       </article>`;
-    }).join("");
+    }).join("") : (activeScheduleRoute
+      ? '<p class="muted-text">No AI planning schedule is published for this searched route yet. The real timetable lookup below is still available.</p>'
+      : '<p class="muted-text">No AI planning schedules have been published yet. Search a route to view actual published timetable details for supported public transport feeds.</p>');
+
+    let timetableHTML = '<section id="published-real-timetable" class="published-real-timetable"><h3>Real operator timetable details</h3><p class="muted-text">Use Route Finder to choose an origin, destination and travel date. Matching published trips will appear here.</p></section>';
+    if (activeScheduleRoute && typeof window.searchIndiaBuses === "function") {
+      const date = document.getElementById("route-date")?.value || localDateString();
+      const cacheKey = [activeScheduleRoute.from, activeScheduleRoute.to, date].join("|").toLowerCase();
+      if (cacheKey === publishedTimetableCacheKey && publishedTimetableCacheHTML) {
+        timetableHTML = publishedTimetableCacheHTML;
+      } else {
+        timetableHTML = '<section id="published-real-timetable" class="published-real-timetable"><h3>Real operator timetable details</h3><p class="muted-text">Loading matching published bus trips and operator information...</p></section>';
+      }
+    }
+
+    container.innerHTML = planningHTML + timetableHTML;
+
+    if (activeScheduleRoute && typeof window.searchIndiaBuses === "function") {
+      const date = document.getElementById("route-date")?.value || localDateString();
+      const cacheKey = [activeScheduleRoute.from, activeScheduleRoute.to, date].join("|").toLowerCase();
+      if (cacheKey !== publishedTimetableCacheKey || !publishedTimetableCacheHTML) {
+        const liveContainer = document.getElementById("published-real-timetable");
+        const html = await window.searchIndiaBuses(activeScheduleRoute.from, activeScheduleRoute.to, date);
+        publishedTimetableCacheKey = cacheKey;
+        publishedTimetableCacheHTML = html;
+        if (liveContainer && activeScheduleRoute &&
+            [activeScheduleRoute.from, activeScheduleRoute.to, date].join("|").toLowerCase() === cacheKey) {
+          liveContainer.outerHTML = html;
+        }
+      }
+    }
   } catch (error) {
     container.innerHTML = '<p class="error-message">Unable to load published schedules. Make sure the SQLite backend is running.</p>';
   }
