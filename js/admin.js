@@ -140,6 +140,8 @@ async function renderServerAgentHistory() {
     const response = await adminApiFetch("http://127.0.0.1:5001/api/agent/runs");
     if (!response.ok) throw new Error("Agent history is unavailable.");
     const runs = await response.json();
+    const runCount = document.getElementById("approved-requests");
+    if (runCount) runCount.textContent = runs.length;
     if (!runs.length) return;
     const latest = runs.slice(0, 5);
     box.insertAdjacentHTML("beforeend", '<h3>Automatic server-side agent activity</h3>' +
@@ -471,7 +473,7 @@ async function renderSchedulePlans(recommendations) {
       const cls = plan.status === "APPROVED" ? "status-approved" : plan.status === "REJECTED" ? "status-rejected" : "status-pending";
       return `<article class="schedule-card">
         <div class="request-top"><strong>${safeText(plan.source)} → ${safeText(plan.destination)}</strong><span class="status-pill ${cls}">${safeText(plan.status)}</span></div>
-        <p><strong>Time slot:</strong> ${safeText(plan.time_slot)} · <strong>Predicted passengers:</strong> ${Number(plan.predicted_passengers)}</p>
+        <p><strong>Time slot:</strong> ${safeText(plan.time_slot)} · <strong>Planning demand estimate:</strong> ${Number(plan.predicted_passengers)}</p>
         <p><strong>Suggested buses:</strong> ${Number(plan.buses)} (assumed capacity ${BUS_CAPACITY} each)</p>
         <p><strong>Proposed departures:</strong> ${(plan.departures || []).map(safeText).join(" · ")}</p>
         <p class="small-note">Illustrative 30-minute intervals only; not verified operator timetables.</p>
