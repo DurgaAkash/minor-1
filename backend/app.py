@@ -274,17 +274,12 @@ def run_agent_analysis(source, destination, time_slot, trigger_type="request"):
     conn.execute("""
         INSERT INTO schedules
           (route_key, source, destination, time_slot, predicted_passengers, buses, departures, status)
-        VALUES (?, ?, ?, ?, ?, ?, ?, 'PENDING')
+        VALUES (?, ?, ?, ?, ?, ?, ?, 'APPROVED')
         ON CONFLICT(route_key) DO UPDATE SET
           source = excluded.source,
           destination = excluded.destination,
           time_slot = excluded.time_slot,
-          status = CASE
-            WHEN schedules.status = 'REJECTED'
-              OR schedules.predicted_passengers != excluded.predicted_passengers
-              OR schedules.buses != excluded.buses
-              OR schedules.departures != excluded.departures
-            THEN 'PENDING' ELSE schedules.status END,
+          status = 'APPROVED',
           predicted_passengers = excluded.predicted_passengers,
           buses = excluded.buses,
           departures = excluded.departures,
@@ -294,15 +289,16 @@ def run_agent_analysis(source, destination, time_slot, trigger_type="request"):
         "SELECT status, predicted_passengers, buses FROM schedules WHERE route_key = ?",
         (route_key,)
     ).fetchone()
-    if saved_schedule["status"] == "APPROVED" and saved_schedule["buses"] * BUS_CAPACITY >= planning_demand:
-        conn.execute("""
-            UPDATE requests SET status = 'APPROVED',
-              admin_note = 'Covered by the currently approved schedule.'
-            WHERE lower(trim(source)) = lower(trim(?))
-              AND lower(trim(destination)) = lower(trim(?))
-              AND lower(trim(preferred_time)) = lower(trim(?))
-              AND status = 'PENDING'
-        """, (source, destination, time_slot))
+    # Demo-mode agent auto-approval: this publishes a prototype schedule immediately.
+    # It is not a real bus-operator confirmation or dispatch authorization.
+    conn.execute("""
+        UPDATE requests SET status = 'APPROVED',
+          admin_note = 'Auto-approved by SmartRoute AI demo agent after demand analysis. Prototype schedule only; confirm with the bus operator.'
+        WHERE lower(trim(source)) = lower(trim(?))
+          AND lower(trim(destination)) = lower(trim(?))
+          AND lower(trim(preferred_time)) = lower(trim(?))
+          AND status = 'PENDING'
+    """, (source, destination, time_slot))
     cursor = conn.execute("""
         INSERT INTO agent_runs
           (trigger_type, source, destination, time_slot, ml_forecast, planning_demand, buses, data_basis, explanation)
@@ -316,7 +312,8 @@ def run_agent_analysis(source, destination, time_slot, trigger_type="request"):
         "id": run_id, "source": source, "destination": destination,
         "time_slot": time_slot, "ml_forecast": ml_forecast,
         "planning_demand": planning_demand, "buses": buses,
-        "data_basis": basis, "explanation": explanation
+        "data_basis": basis, "explanation": explanation,
+        "schedule_status": "AUTO_APPROVED"
     }
 
 
@@ -431,7 +428,7 @@ def add_request():
     return jsonify({
         "message": "Request saved and automatic demand analysis completed.",
         "id": record_id, "agent": agent,
-        "schedule_status": "PENDING_ADMIN_APPROVAL"
+        "schedule_status": "AUTO_APPROVED_BY_AGENT"
     }), 201
 
 
@@ -563,7 +560,6 @@ def review_schedule(schedule_id):
         WHERE lower(trim(source)) = lower(trim(?))
           AND lower(trim(destination)) = lower(trim(?))
           AND lower(trim(preferred_time)) = lower(trim(?))
-          AND status = 'PENDING'
     """, (linked_request_status, linked_note, row["source"], row["destination"], row["time_slot"]))
     conn.commit()
     conn.close()
