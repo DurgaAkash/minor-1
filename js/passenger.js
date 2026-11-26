@@ -22,6 +22,15 @@ const passengerSession = (() => {
 })();
 if (!localStorage.getItem(STORAGE_KEYS.token) || !passengerSession || passengerSession.role !== "passenger") {
   window.location.replace("login.html");
+} else {
+  passengerApiFetch("http://127.0.0.1:5001/api/auth/me")
+    .then(response => { if (!response.ok) throw new Error("Session expired"); return response.json(); })
+    .then(result => { if (result.user.role !== "passenger") throw new Error("Wrong account role"); })
+    .catch(() => {
+      localStorage.removeItem(STORAGE_KEYS.user);
+      localStorage.removeItem(STORAGE_KEYS.token);
+      window.location.replace("login.html");
+    });
 }
 
 function readList(key) {
